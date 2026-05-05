@@ -7,13 +7,18 @@ interface Props {
 }
 
 export function WelcomeQuote({ quote }: Props) {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    // Start fading out after 3.5 seconds
+    const key = "quote_shown";
+    const alreadyShown = sessionStorage.getItem(key);
+    if (alreadyShown) return;
+
+    sessionStorage.setItem(key, "1");
+    setVisible(true);
+
     const fadeTimer = setTimeout(() => setFading(true), 3500);
-    // Remove from DOM after fade completes
     const removeTimer = setTimeout(() => setVisible(false), 5000);
     return () => {
       clearTimeout(fadeTimer);
@@ -29,6 +34,7 @@ export function WelcomeQuote({ quote }: Props) {
       style={{
         opacity: fading ? 0 : 1,
         transition: "opacity 1.4s ease-out",
+        pointerEvents: fading ? "none" : "all",
       }}
     >
       <div className="max-w-lg px-8 text-center">
@@ -37,13 +43,7 @@ export function WelcomeQuote({ quote }: Props) {
             <path d="M9 1L4 9h5l-2 6 7-8H9l2-6z" fill="white" />
           </svg>
         </div>
-        <p
-          className="font-serif text-2xl md:text-3xl text-text-primary leading-relaxed"
-          style={{
-            opacity: fading ? 0 : 1,
-            transition: "opacity 1.4s ease-out",
-          }}
-        >
+        <p className="font-serif text-2xl md:text-3xl text-text-primary leading-relaxed">
           &ldquo;{quote}&rdquo;
         </p>
       </div>
