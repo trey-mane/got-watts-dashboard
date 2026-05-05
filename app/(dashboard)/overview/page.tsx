@@ -19,7 +19,7 @@ export default async function OverviewPage() {
     <div>
       <SectionHeader
         title="Overview"
-        subtitle="All-time performance across every lead source"
+        subtitle="Performance across every lead source"
       />
 
       {/* Summary stat cards */}

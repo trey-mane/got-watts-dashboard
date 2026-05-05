@@ -38,7 +38,7 @@ export default function LoginPage() {
         <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
-              d="M8 1L10.5 6H14L10.5 9.5L12 14L8 11L4 14L5.5 9.5L2 6H5.5L8 1Z"
+              d="M9 1L4 9h5l-2 6 7-8H9l2-6z"
               fill="white"
             />
           </svg>

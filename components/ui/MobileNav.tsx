@@ -38,7 +38,7 @@ export function MobileNav() {
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 1L10.5 6H14L10.5 9.5L12 14L8 11L4 14L5.5 9.5L2 6H5.5L8 1Z" fill="white" />
+                    <path d="M9 1L4 9h5l-2 6 7-8H9l2-6z" fill="white" />
                   </svg>
                 </div>
                 <span className="text-text-primary text-sm font-medium">Got Watts</span>

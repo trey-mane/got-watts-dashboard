@@ -18,14 +18,14 @@ export const authOptions: NextAuthOptions = {
             name: "Trey",
             firstName: "Trey",
           },
-          // Add new users below — copy the block above and change the fields
-          // {
-          //   id: "2",
-          //   email: "jeremy@gotwatts.com",
-          //   password: "ChooseAPassword",
-          //   name: "Jeremy",
-          //   firstName: "Jeremy",
-          // },
+          {
+            id: "2",
+            email: "jeremy@gotwatts.com",
+            password: "GotWatts2026",
+            name: "Jeremy",
+            firstName: "Jeremy",
+            quote: "Always do right by people. Never hurt another brother.",
+          },
         ];
 
         const user = users.find(
@@ -53,14 +53,17 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.firstName = (user as { firstName?: string }).firstName;
+        const u = user as { firstName?: string; quote?: string };
+        token.firstName = u.firstName;
+        token.quote = u.quote ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { firstName?: string }).firstName =
-          token.firstName as string;
+        const u = session.user as { firstName?: string; quote?: string };
+        u.firstName = token.firstName as string;
+        u.quote = token.quote as string | undefined;
       }
       return session;
     },
