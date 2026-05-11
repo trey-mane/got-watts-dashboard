@@ -5,10 +5,6 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "Micheletti Media — Client Portal",
   description: "Client portal by Micheletti Media",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import MM_LOGO from "@/lib/mm-logo";
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ export default function LoginPage() {
       <div className="mb-12 animate-fade-in">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/MM.png"
+          src={MM_LOGO}
           alt="Micheletti Media"
           width={80}
           height={80}
