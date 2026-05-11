@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -36,13 +34,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-4">
       {/* MM Logo */}
       <div className="mb-12 animate-fade-in">
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/MM.png"
           alt="Micheletti Media"
           width={80}
           height={80}
-          className="object-contain"
-          priority
+          style={{ objectFit: "contain" }}
         />
       </div>
 
