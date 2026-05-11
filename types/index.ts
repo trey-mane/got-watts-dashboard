@@ -34,20 +34,23 @@ export const SOURCE_LABELS: Record<Source, string> = {
 export interface SourceRow {
   period: string;
   leads: number;
-  closed: number;
+  closed: number;       // contracts signed (count)
   closeRate: number;
+  installs: number;     // projects installed (count) — NEW
   adSpend: number;
   cpl: number;
   cac: number;
   roas: number;
-  grossSales: number;
+  contractValue: number; // closed contract value $ — NEW (bookings)
+  grossSales: number;    // install revenue $ (previously just "Gross Sales")
 }
 
 /** One row from the Dashboard summary tab */
 export interface DashboardRow {
   source: string;
   leads: number;
-  closed: number;
+  closed: number;       // contracts signed (count)
+  installs: number;     // projects installed (count) — NEW
   closeRate: number;
   adSpend: number;
   cpl: number;
@@ -57,15 +60,18 @@ export interface DashboardRow {
   cacMonthAvg: number;
   cacLast90: number;
   roas: number;
-  grossSales: number;
+  contractValue: number; // closed contract value $ — NEW (bookings)
+  grossSales: number;    // install revenue $
 }
 
 export interface OverviewStats {
   totalLeads: number;
-  totalClosed: number;
+  totalClosed: number;       // contracts signed
+  totalInstalls: number;     // projects installed — NEW
   overallCloseRate: number;
   totalAdSpend: number;
-  totalRevenue: number;
+  totalContractValue: number; // bookings total — NEW
+  totalRevenue: number;       // install revenue total
   blendedCAC: number;
   blendedROAS: number;
   paidCAC: number;

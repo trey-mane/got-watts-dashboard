@@ -33,41 +33,50 @@ export default async function SourcePage({ params }: PageProps) {
   const rows = await getSourceData(source);
   const label = SOURCE_LABELS[source];
 
-  const isEmpty = rows.length === 0 || rows.every((r) => r.leads === 0 && r.grossSales === 0);
+  const isEmpty =
+    rows.length === 0 ||
+    rows.every(
+      (r) => r.leads === 0 && r.grossSales === 0 && r.contractValue === 0
+    );
 
-  const totalLeads = rows.reduce((s, r) => s + r.leads, 0);
-  const totalClosed = rows.reduce((s, r) => s + r.closed, 0);
-  const totalAdSpend = rows.reduce((s, r) => s + r.adSpend, 0);
-  const totalRevenue = rows.reduce((s, r) => s + r.grossSales, 0);
-  const overallCloseRate = totalLeads > 0 ? (totalClosed / totalLeads) * 100 : 0;
+  const totalLeads         = rows.reduce((s, r) => s + r.leads, 0);
+  const totalClosed        = rows.reduce((s, r) => s + r.closed, 0);
+  const totalInstalls      = rows.reduce((s, r) => s + r.installs, 0);
+  const totalAdSpend       = rows.reduce((s, r) => s + r.adSpend, 0);
+  const totalContractValue = rows.reduce((s, r) => s + r.contractValue, 0);
+  const totalRevenue       = rows.reduce((s, r) => s + r.grossSales, 0);
+  const overallCloseRate   = totalLeads > 0 ? (totalClosed / totalLeads) * 100 : 0;
 
-  const avgCPL = computeAvg(rows.map((r) => r.cpl));
-  const avgCAC = computeAvg(rows.map((r) => r.cac));
+  const avgCPL  = computeAvg(rows.map((r) => r.cpl));
+  const avgCAC  = computeAvg(rows.map((r) => r.cac));
   const avgROAS = computeAvg(rows.map((r) => r.roas));
 
-  // Last-90-day approximation: last 3 rows
-  const last3 = rows.slice(-3);
-  const cplLast90 = computeAvg(last3.map((r) => r.cpl));
-  const cacLast90 = computeAvg(last3.map((r) => r.cac));
+  const last3      = rows.slice(-3);
+  const cplLast90  = computeAvg(last3.map((r) => r.cpl));
+  const cacLast90  = computeAvg(last3.map((r) => r.cac));
 
   return (
     <div>
       <SourceNav current={source} />
-      <SectionHeader
-        title={label}
-        subtitle="Monthly performance breakdown"
-      />
+      <SectionHeader title={label} subtitle="Monthly performance breakdown" />
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="w-12 h-12 rounded-full bg-surface-muted border border-surface-border flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <circle cx="10" cy="10" r="8" stroke="#666" strokeWidth="1.5" />
-              <path d="M10 6v4M10 14h.01" stroke="#666" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M10 6v4M10 14h.01"
+                stroke="#666"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-text-secondary font-medium text-sm">Inactive — not yet tracking</p>
+            <p className="text-text-secondary font-medium text-sm">
+              Inactive — not yet tracking
+            </p>
             <p className="text-text-muted text-xs mt-1">
               No data has been recorded for {label} yet.
             </p>
@@ -75,18 +84,26 @@ export default async function SourcePage({ params }: PageProps) {
         </div>
       ) : (
         <>
-          {/* Key metric cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+          {/* ── Pipeline cards ── */}
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
+            Pipeline
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
             <StatCard label="Total Leads" value={formatNumber(totalLeads)} />
-            <StatCard label="Total Closed" value={formatNumber(totalClosed)} />
             <StatCard
-              label="Close Rate"
-              value={overallCloseRate > 0 ? formatPercent(overallCloseRate) : "—"}
+              label="Contracts Signed"
+              value={formatNumber(totalClosed)}
+              sub="Bookings (leading)"
               highlight
             />
             <StatCard
-              label="Total Revenue"
-              value={totalRevenue > 0 ? formatCurrency(totalRevenue) : "—"}
+              label="Projects Installed"
+              value={totalInstalls > 0 ? formatNumber(totalInstalls) : "—"}
+              sub="Recognized (lagging)"
+            />
+            <StatCard
+              label="Close Rate"
+              value={overallCloseRate > 0 ? formatPercent(overallCloseRate) : "—"}
               highlight
             />
             <StatCard
@@ -95,7 +112,29 @@ export default async function SourcePage({ params }: PageProps) {
             />
           </div>
 
-          {/* CPL / CAC / ROAS cards */}
+          {/* ── Revenue cards ── */}
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
+            Revenue
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+            <StatCard
+              label="Contract Value"
+              value={totalContractValue > 0 ? formatCurrency(totalContractValue) : "—"}
+              sub="Signed bookings total"
+              highlight
+            />
+            <StatCard
+              label="Install Revenue"
+              value={totalRevenue > 0 ? formatCurrency(totalRevenue) : "—"}
+              sub="Recognized on completion"
+              highlight
+            />
+          </div>
+
+          {/* ── Efficiency cards ── */}
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
+            Efficiency
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
             <StatCard
               label="Avg CPL"
@@ -125,15 +164,17 @@ export default async function SourcePage({ params }: PageProps) {
             />
           </div>
 
-          {/* Charts */}
+          {/* ── Charts ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <LeadsLineChart data={rows} />
             <RevenueLineChart data={rows} />
           </div>
 
-          {/* Monthly table */}
+          {/* ── Monthly table ── */}
           <div>
-            <p className="text-text-primary text-sm font-medium mb-4">Monthly Data</p>
+            <p className="text-text-primary text-sm font-medium mb-4">
+              Monthly Data
+            </p>
             <div className="bg-surface-card border border-surface-border rounded-2xl overflow-x-auto">
               <table className="w-full text-sm font-sans">
                 <thead>
@@ -141,13 +182,15 @@ export default async function SourcePage({ params }: PageProps) {
                     {[
                       "Period",
                       "Leads",
-                      "Closed",
+                      "Contracts",
+                      "Installs",
                       "Close Rate",
                       "Ad Spend",
                       "CPL",
                       "CAC",
                       "ROAS",
-                      "Gross Sales",
+                      "Contract Value",
+                      "Install Revenue",
                     ].map((h) => (
                       <th
                         key={h}
@@ -167,8 +210,15 @@ export default async function SourcePage({ params }: PageProps) {
                       <td className="px-4 py-3 text-text-primary font-medium whitespace-nowrap">
                         {row.period}
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">{formatNumber(row.leads)}</td>
-                      <td className="px-4 py-3 text-text-secondary">{formatNumber(row.closed)}</td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {formatNumber(row.leads)}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {formatNumber(row.closed)}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {row.installs > 0 ? formatNumber(row.installs) : "—"}
+                      </td>
                       <td className="px-4 py-3 text-text-secondary">
                         {row.closeRate > 0 ? formatPercent(row.closeRate) : "—"}
                       </td>
@@ -185,13 +235,24 @@ export default async function SourcePage({ params }: PageProps) {
                         {row.roas > 0 ? formatROAS(row.roas) : "—"}
                       </td>
                       <td className="px-4 py-3 text-brand font-medium">
-                        {row.grossSales > 0 ? formatCurrency(row.grossSales) : "—"}
+                        {row.contractValue > 0
+                          ? formatCurrency(row.contractValue)
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {row.grossSales > 0
+                          ? formatCurrency(row.grossSales)
+                          : "—"}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <p className="text-text-muted text-[10px] mt-2 font-sans">
+              Contract Value = value of deals signed that month ·
+              Install Revenue = value of jobs completed (installed) that month
+            </p>
           </div>
         </>
       )}

@@ -14,17 +14,30 @@ export async function GET() {
 
     const sheets = google.sheets({ version: "v4", auth });
 
-    const res = await sheets.spreadsheets.get({
+    const meta = await sheets.spreadsheets.get({
       spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
     });
 
-    const sheetNames = res.data.sheets?.map((s) => s.properties?.title);
+    const sheetNames = meta.data.sheets?.map((s) => s.properties?.title);
+
+    // Fetch first 5 rows of Dashboard tab (row 1 = headers, rows 2-5 = data)
+    const dashRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+      range: "📊 Dashboard!A1:Z10",
+    });
+
+    // Fetch first 5 rows of one source tab
+    const srcRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+      range: "Google_Ads!A1:Z10",
+    });
 
     return NextResponse.json({
       ok: true,
-      title: res.data.properties?.title,
+      title: meta.data.properties?.title,
       sheets: sheetNames,
-      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      dashboardRows: dashRes.data.values,
+      googleAdsRows: srcRes.data.values,
     });
   } catch (err: unknown) {
     const error = err as { message?: string; code?: number; status?: string };
@@ -34,8 +47,6 @@ export async function GET() {
         message: error.message,
         code: error.code,
         status: error.status,
-        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        keyLoaded: !!process.env.GOOGLE_PRIVATE_KEY,
       },
       { status: 500 }
     );

@@ -10,7 +10,7 @@ export const revalidate = 300;
 export default async function TrendsPage() {
   const allData = await getAllSourcesData();
 
-  // Collect all unique periods across all sources
+  // Collect all unique periods
   const periodSet = new Set<string>();
   Object.values(allData).forEach((rows) => {
     rows.forEach((r) => {
@@ -18,23 +18,26 @@ export default async function TrendsPage() {
     });
   });
 
-  // Sort periods chronologically (assumes "Jan 2025", "Feb 2025" etc. or similar)
-  const periods = Array.from(periodSet).sort((a, b) => {
-    const monthOrder = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const parseP = (p: string) => {
-      const parts = p.split(" ");
-      const month = monthOrder.indexOf(parts[0]);
-      const year = parseInt(parts[1] ?? "0");
-      return year * 12 + month;
-    };
-    return parseP(a) - parseP(b);
-  });
+  const monthOrder = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec",
+  ];
+  const parseP = (p: string) => {
+    const parts = p.split(" ");
+    const month = monthOrder.indexOf(parts[0]);
+    const year  = parseInt(parts[1] ?? "0");
+    return year * 12 + month;
+  };
 
-  // Build chart data: one entry per period with each source as a key
+  const periods = Array.from(periodSet).sort((a, b) => parseP(a) - parseP(b));
+
   const activeSources = Object.entries(allData)
-    .filter(([, rows]) => rows.some((r) => r.leads > 0 || r.grossSales > 0))
+    .filter(([, rows]) =>
+      rows.some((r) => r.leads > 0 || r.contractValue > 0 || r.grossSales > 0)
+    )
     .map(([s]) => s);
 
+  // Leads chart data — by source
   const leadsData = periods.map((period) => {
     const entry: { period: string; [key: string]: string | number } = { period };
     let periodTotal = 0;
@@ -48,26 +51,28 @@ export default async function TrendsPage() {
     return entry;
   });
 
+  // Revenue chart data — show contract value vs install revenue as totals (not per-source)
+  // This makes the leading vs lagging split crystal clear
   const revenueData = periods.map((period) => {
-    const entry: { period: string; [key: string]: string | number } = { period };
-    let periodTotal = 0;
+    let contractValueTotal = 0;
+    let installRevenueTotal = 0;
     activeSources.forEach((source) => {
       const row = allData[source]?.find((r) => r.period === period);
-      const val = row?.grossSales ?? 0;
-      entry[source] = val;
-      periodTotal += val;
+      contractValueTotal  += row?.contractValue ?? 0;
+      installRevenueTotal += row?.grossSales    ?? 0;
     });
-    entry["Total"] = periodTotal;
-    return entry;
+    return {
+      period,
+      "Contract Value":  contractValueTotal,
+      "Install Revenue": installRevenueTotal,
+    };
   });
 
-  // Aggregate totals per period for summary cards
-  const totalLeadsAllTime = Object.values(allData)
-    .flat()
-    .reduce((s, r) => s + r.leads, 0);
-  const totalRevenueAllTime = Object.values(allData)
-    .flat()
-    .reduce((s, r) => s + r.grossSales, 0);
+  // All-time aggregate totals
+  const allRows = Object.values(allData).flat();
+  const totalLeadsAllTime         = allRows.reduce((s, r) => s + r.leads, 0);
+  const totalContractValueAllTime = allRows.reduce((s, r) => s + r.contractValue, 0);
+  const totalInstallRevenueAllTime= allRows.reduce((s, r) => s + r.grossSales, 0);
 
   return (
     <div>
@@ -76,14 +81,21 @@ export default async function TrendsPage() {
         subtitle="Combined monthly performance across all lead sources"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Total Leads (All Time)"
           value={formatNumber(totalLeadsAllTime)}
         />
         <StatCard
-          label="Total Revenue (All Time)"
-          value={formatCurrency(totalRevenueAllTime)}
+          label="Contract Value (All Time)"
+          value={formatCurrency(totalContractValueAllTime)}
+          sub="Signed bookings"
+          highlight
+        />
+        <StatCard
+          label="Install Revenue (All Time)"
+          value={formatCurrency(totalInstallRevenueAllTime)}
+          sub="Recognized on completion"
           highlight
         />
         <StatCard
@@ -94,16 +106,21 @@ export default async function TrendsPage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        {/* ── Leads by source ── */}
         {leadsData.length > 0 ? (
-          <TrendsLeadsChart data={leadsData} sources={["Total", ...activeSources]} />
+          <TrendsLeadsChart
+            data={leadsData}
+            sources={["Total", ...activeSources]}
+          />
         ) : (
           <div className="bg-surface-card border border-surface-border rounded-2xl p-12 text-center">
             <p className="text-text-muted text-sm">No lead data available yet.</p>
           </div>
         )}
 
+        {/* ── Contract Value vs Install Revenue ── */}
         {revenueData.length > 0 ? (
-          <TrendsRevenueChart data={revenueData} sources={["Total", ...activeSources]} />
+          <TrendsRevenueChart data={revenueData} />
         ) : (
           <div className="bg-surface-card border border-surface-border rounded-2xl p-12 text-center">
             <p className="text-text-muted text-sm">No revenue data available yet.</p>
