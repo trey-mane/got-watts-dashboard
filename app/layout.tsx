@@ -3,8 +3,12 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Got Watts — Client Dashboard",
-  description: "Lead & revenue attribution dashboard by Micheletti Media",
+  title: "Micheletti Media — Client Portal",
+  description: "Client portal by Micheletti Media",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

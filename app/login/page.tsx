@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,19 +34,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-4">
-      {/* Logo / Brand mark */}
-      <div className="mb-12 flex items-center gap-2 animate-fade-in">
-        <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M9 1L4 9h5l-2 6 7-8H9l2-6z"
-              fill="white"
-            />
-          </svg>
-        </div>
-        <span className="text-text-secondary text-sm tracking-widest uppercase font-sans">
-          Got Watts
-        </span>
+      {/* MM Logo */}
+      <div className="mb-12 animate-fade-in">
+        <Image
+          src="/MM.png"
+          alt="Micheletti Media"
+          width={80}
+          height={80}
+          className="object-contain"
+          priority
+        />
       </div>
 
       {/* Greeting */}
