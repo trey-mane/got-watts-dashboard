@@ -19,7 +19,7 @@ export default async function OverviewPage() {
     <div>
       <SectionHeader
         title="Overview"
-        subtitle="Performance across every lead source"
+        subtitle="Performance across every lead source since Jan '25"
       />
 
       {/* ── Pipeline (bookings) ── */}
