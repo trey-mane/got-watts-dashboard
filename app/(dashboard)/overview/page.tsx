@@ -1,8 +1,9 @@
-import { getDashboardData } from "@/lib/google-sheets";
+import { getDashboardData, getAllSourcesData } from "@/lib/google-sheets";
 import { StatCard } from "@/components/ui/StatCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { LeadsBySourceChart } from "@/components/charts/LeadsBySourceChart";
 import { RevenueBySourceChart } from "@/components/charts/RevenueBySourceChart";
+import { ALL_SOURCES, SOURCE_LABELS } from "@/types";
 import {
   formatCurrency,
   formatPercent,
@@ -13,7 +14,34 @@ import {
 export const revalidate = 300;
 
 export default async function OverviewPage() {
-  const stats = await getDashboardData();
+  // Fetch Dashboard summary and all source tabs in parallel
+  const [stats, allData] = await Promise.all([
+    getDashboardData(),
+    getAllSourcesData(),
+  ]);
+
+  // The Dashboard tab's Installs column is unpopulated — installs are only
+  // tracked at the monthly row level in each source tab. Sum them here.
+  const totalInstalls = Object.values(allData)
+    .flat()
+    .reduce((s, r) => s + r.installs, 0);
+
+  // Build a installs-per-source lookup keyed by the source tab name
+  // so we can match against the Dashboard's bySource rows.
+  const installsBySourceKey: Record<string, number> = {};
+  ALL_SOURCES.forEach((src) => {
+    installsBySourceKey[src] = (allData[src] ?? []).reduce(
+      (s, r) => s + r.installs,
+      0
+    );
+  });
+
+  // Map a Dashboard display name (e.g. "Google Ads") → source key (e.g. "Google_Ads")
+  function resolveSourceKey(displayName: string): string | undefined {
+    return ALL_SOURCES.find(
+      (s) => SOURCE_LABELS[s].toLowerCase() === displayName.toLowerCase()
+    );
+  }
 
   return (
     <div>
@@ -22,7 +50,7 @@ export default async function OverviewPage() {
         subtitle="Performance across every lead source since Jan '25"
       />
 
-      {/* ── Pipeline (bookings) ── */}
+      {/* ── Pipeline ── */}
       <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
         Pipeline — Contracts &amp; Bookings
       </p>
@@ -36,7 +64,7 @@ export default async function OverviewPage() {
         />
         <StatCard
           label="Projects Installed"
-          value={formatNumber(stats.totalInstalls)}
+          value={totalInstalls > 0 ? formatNumber(totalInstalls) : "—"}
           sub="Revenue recognized (lagging)"
         />
         <StatCard
@@ -124,39 +152,43 @@ export default async function OverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {stats.bySource.map((row, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-surface-border/50 last:border-0 hover:bg-surface-muted/40 transition-colors"
-                >
-                  <td className="px-4 py-3 text-text-primary font-medium whitespace-nowrap">
-                    {row.source.replace(/_/g, " ")}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{formatNumber(row.leads)}</td>
-                  <td className="px-4 py-3 text-text-secondary">{formatNumber(row.closed)}</td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.installs > 0 ? formatNumber(row.installs) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.closeRate > 0 ? formatPercent(row.closeRate) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.adSpend > 0 ? formatCurrency(row.adSpend) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.cac > 0 ? formatCurrency(row.cac) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.roas > 0 ? formatROAS(row.roas) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-brand font-medium">
-                    {row.contractValue > 0 ? formatCurrency(row.contractValue) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {row.grossSales > 0 ? formatCurrency(row.grossSales) : "—"}
-                  </td>
-                </tr>
-              ))}
+              {stats.bySource.map((row, i) => {
+                const key = resolveSourceKey(row.source);
+                const installs = key ? (installsBySourceKey[key] ?? 0) : 0;
+                return (
+                  <tr
+                    key={i}
+                    className="border-b border-surface-border/50 last:border-0 hover:bg-surface-muted/40 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-text-primary font-medium whitespace-nowrap">
+                      {row.source.replace(/_/g, " ")}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{formatNumber(row.leads)}</td>
+                    <td className="px-4 py-3 text-text-secondary">{formatNumber(row.closed)}</td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {installs > 0 ? formatNumber(installs) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.closeRate > 0 ? formatPercent(row.closeRate) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.adSpend > 0 ? formatCurrency(row.adSpend) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.cac > 0 ? formatCurrency(row.cac) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.roas > 0 ? formatROAS(row.roas) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-brand font-medium">
+                      {row.contractValue > 0 ? formatCurrency(row.contractValue) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.grossSales > 0 ? formatCurrency(row.grossSales) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
