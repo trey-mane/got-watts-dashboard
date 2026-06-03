@@ -64,6 +64,43 @@ export interface DashboardRow {
   grossSales: number;    // install revenue $
 }
 
+// ─── Social Media ─────────────────────────────────────────────────────────────
+
+export type SocialPlatform = "Instagram" | "Facebook" | "YouTube";
+
+export const SOCIAL_PLATFORMS: SocialPlatform[] = [
+  "Instagram",
+  "Facebook",
+  "YouTube",
+];
+
+/** One row from the 📱 Social Stats tab */
+export interface SocialStatRow {
+  platform: SocialPlatform;
+  period: string;          // e.g. "Jun 2025" or "Week of Jun 2 2025"
+  periodType: "Monthly" | "Weekly";
+  views: number;
+  postsPublished: number;
+  newFollowers: number;
+  totalFollowers: number;
+}
+
+/** One row from the 📱 Social Videos tab */
+export interface SocialVideoRow {
+  platform: SocialPlatform;
+  datePosted: string;      // e.g. "Jun 2 2025"
+  title: string;
+  url: string;
+  views: number;
+  likes: number;
+  comments: number;
+  type: string;            // Reel / Post / Short / Video / Story
+  topPerformer: boolean;   // "Yes" / "No" in sheet
+  notes: string;
+}
+
+// ─── Overview Stats ───────────────────────────────────────────────────────────
+
 export interface OverviewStats {
   totalLeads: number;
   totalClosed: number;       // contracts signed

@@ -1,5 +1,13 @@
 import { google } from "googleapis";
-import { DashboardRow, OverviewStats, Source, SourceRow } from "@/types";
+import {
+  DashboardRow,
+  OverviewStats,
+  Source,
+  SourceRow,
+  SocialPlatform,
+  SocialStatRow,
+  SocialVideoRow,
+} from "@/types";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
 
@@ -151,6 +159,93 @@ export async function getSourceData(source: Source): Promise<SourceRow[]> {
     }))
     // Exclude future-placeholder rows (no leads AND no contract value AND no installs)
     .filter((r) => r.leads > 0 || r.contractValue > 0 || r.installs > 0 || r.grossSales > 0);
+}
+
+// ─── Social Media tabs ────────────────────────────────────────────────────────
+//
+// Tab: "📱 Social Stats"
+//   A          B        C            D      E                 F              G
+//   Platform  Period  Period Type  Views  Posts Published  New Followers  Total Followers
+//   [0]       [1]     [2]          [3]    [4]              [5]            [6]
+//
+// Tab: "📱 Social Videos"
+//   A          B             C      D    E      F      G         H     I               J
+//   Platform  Date Posted  Title  URL  Views  Likes  Comments  Type  Top Performer  Notes
+//   [0]       [1]          [2]    [3]  [4]    [5]    [6]       [7]   [8]            [9]
+//
+
+const VALID_PLATFORMS = /^(Instagram|Facebook|YouTube)$/i;
+
+function normalizePlatform(val: string): SocialPlatform | null {
+  const v = val.trim();
+  if (/instagram/i.test(v)) return "Instagram";
+  if (/facebook/i.test(v)) return "Facebook";
+  if (/youtube/i.test(v)) return "YouTube";
+  return null;
+}
+
+export async function getSocialStats(): Promise<SocialStatRow[]> {
+  const auth = getAuth();
+  const sheets = google.sheets({ version: "v4", auth });
+
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "📱 Social Stats!A2:G300",
+    });
+    const rows = res.data.values ?? [];
+    return rows
+      .filter((r) => {
+        const platform = r[0]?.toString().trim() ?? "";
+        return VALID_PLATFORMS.test(platform) && r[1];
+      })
+      .map((r) => {
+        const periodType = r[2]?.toString().trim();
+        return {
+          platform:      normalizePlatform(r[0])!,
+          period:        r[1]?.toString().trim() ?? "",
+          periodType:    (periodType === "Weekly" ? "Weekly" : "Monthly") as "Monthly" | "Weekly",
+          views:         parseNum(r[3]),
+          postsPublished:parseNum(r[4]),
+          newFollowers:  parseNum(r[5]),
+          totalFollowers:parseNum(r[6]),
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+export async function getSocialVideos(): Promise<SocialVideoRow[]> {
+  const auth = getAuth();
+  const sheets = google.sheets({ version: "v4", auth });
+
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "📱 Social Videos!A2:J500",
+    });
+    const rows = res.data.values ?? [];
+    return rows
+      .filter((r) => {
+        const platform = r[0]?.toString().trim() ?? "";
+        return VALID_PLATFORMS.test(platform) && r[2]; // must have a title
+      })
+      .map((r) => ({
+        platform:    normalizePlatform(r[0])!,
+        datePosted:  r[1]?.toString().trim() ?? "",
+        title:       r[2]?.toString().trim() ?? "",
+        url:         r[3]?.toString().trim() ?? "",
+        views:       parseNum(r[4]),
+        likes:       parseNum(r[5]),
+        comments:    parseNum(r[6]),
+        type:        r[7]?.toString().trim() ?? "",
+        topPerformer:/yes|true|1|y/i.test(r[8]?.toString().trim() ?? ""),
+        notes:       r[9]?.toString().trim() ?? "",
+      }));
+  } catch {
+    return [];
+  }
 }
 
 /** Fetch all source tabs for the Trends page */

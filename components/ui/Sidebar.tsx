@@ -27,6 +27,18 @@ const mainNav = [
       </svg>
     ),
   },
+  {
+    href: "/social",
+    label: "Social Media",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="4"  cy="8"  r="2" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="12" cy="3"  r="2" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="12" cy="13" r="2" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M6 7L10 4M6 9L10 12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 export function Sidebar() {
