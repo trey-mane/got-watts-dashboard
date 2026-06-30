@@ -4,6 +4,7 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { LeadsBySourceChart } from "@/components/charts/LeadsBySourceChart";
 import { RevenueBySourceChart } from "@/components/charts/RevenueBySourceChart";
 import { ALL_SOURCES, SOURCE_LABELS } from "@/types";
+import { Collapsible } from "@/components/ui/Collapsible";
 import {
   formatCurrency,
   formatPercent,
@@ -189,63 +190,59 @@ export default async function OverviewPage() {
         />
       </div>
 
-      {/* ── 30-day window ── */}
-      <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3 mt-2 pl-1 border-l-2 border-brand/40">
-        Last 30 Days
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <StatCard
-          label="Blended CAC"
-          value={metrics30.blendedCAC > 0 ? formatCurrency(metrics30.blendedCAC) : "—"}
-          sub="All channels"
-        />
-        <StatCard
-          label="Paid CAC"
-          value={metrics30.paidCAC > 0 ? formatCurrency(metrics30.paidCAC) : "—"}
-          sub="Paid only"
-          highlight
-        />
-        <StatCard
-          label="Paid ROAS"
-          value={metrics30.paidROAS > 0 ? formatROAS(metrics30.paidROAS) : "—"}
-          sub="Paid only"
-          highlight
-        />
-        <StatCard
-          label="Contracts Signed"
-          value={metrics30.closed > 0 ? formatNumber(metrics30.closed) : "—"}
-          sub={`${formatCurrency(metrics30.adSpend)} ad spend`}
-        />
-      </div>
+      <Collapsible label="Last 30 Days" accentOpacity="40">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <StatCard
+            label="Blended CAC"
+            value={metrics30.blendedCAC > 0 ? formatCurrency(metrics30.blendedCAC) : "—"}
+            sub="All channels"
+          />
+          <StatCard
+            label="Paid CAC"
+            value={metrics30.paidCAC > 0 ? formatCurrency(metrics30.paidCAC) : "—"}
+            sub="Paid only"
+            highlight
+          />
+          <StatCard
+            label="Paid ROAS"
+            value={metrics30.paidROAS > 0 ? formatROAS(metrics30.paidROAS) : "—"}
+            sub="Paid only"
+            highlight
+          />
+          <StatCard
+            label="Contracts Signed"
+            value={metrics30.closed > 0 ? formatNumber(metrics30.closed) : "—"}
+            sub={`${formatCurrency(metrics30.adSpend)} ad spend`}
+          />
+        </div>
+      </Collapsible>
 
-      {/* ── 90-day window ── */}
-      <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3 mt-2 pl-1 border-l-2 border-brand/20">
-        Last 90 Days
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Blended CAC"
-          value={metrics90.blendedCAC > 0 ? formatCurrency(metrics90.blendedCAC) : "—"}
-          sub="All channels"
-        />
-        <StatCard
-          label="Paid CAC"
-          value={metrics90.paidCAC > 0 ? formatCurrency(metrics90.paidCAC) : "—"}
-          sub="Paid only"
-          highlight
-        />
-        <StatCard
-          label="Paid ROAS"
-          value={metrics90.paidROAS > 0 ? formatROAS(metrics90.paidROAS) : "—"}
-          sub="Paid only"
-          highlight
-        />
-        <StatCard
-          label="Contracts Signed"
-          value={metrics90.closed > 0 ? formatNumber(metrics90.closed) : "—"}
-          sub={`${formatCurrency(metrics90.adSpend)} ad spend`}
-        />
-      </div>
+      <Collapsible label="Last 90 Days" accentOpacity="20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            label="Blended CAC"
+            value={metrics90.blendedCAC > 0 ? formatCurrency(metrics90.blendedCAC) : "—"}
+            sub="All channels"
+          />
+          <StatCard
+            label="Paid CAC"
+            value={metrics90.paidCAC > 0 ? formatCurrency(metrics90.paidCAC) : "—"}
+            sub="Paid only"
+            highlight
+          />
+          <StatCard
+            label="Paid ROAS"
+            value={metrics90.paidROAS > 0 ? formatROAS(metrics90.paidROAS) : "—"}
+            sub="Paid only"
+            highlight
+          />
+          <StatCard
+            label="Contracts Signed"
+            value={metrics90.closed > 0 ? formatNumber(metrics90.closed) : "—"}
+            sub={`${formatCurrency(metrics90.adSpend)} ad spend`}
+          />
+        </div>
+      </Collapsible>
 
       {/* ── Source breakdown table ── */}
       <div className="mb-8">
