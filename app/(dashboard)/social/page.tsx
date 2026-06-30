@@ -23,17 +23,25 @@ function latestStat(
 ): SocialStatRow | undefined {
   return rows
     .filter((r) => r.platform === platform && r.periodType === type)
-    .at(-1); // last row = most recent period
+    .at(-1);
 }
 
-function sumField(
+/** Most recent row regardless of period type — used for current follower count */
+function latestStatAny(
+  rows: SocialStatRow[],
+  platform: SocialPlatform
+): SocialStatRow | undefined {
+  return rows.filter((r) => r.platform === platform).at(-1);
+}
+
+/** Sum a field across all weekly rows — approximates month-to-date when no monthly row exists */
+function sumWeekly(
   rows: SocialStatRow[],
   platform: SocialPlatform,
-  type: "Monthly" | "Weekly",
   field: keyof Pick<SocialStatRow, "views" | "postsPublished" | "newFollowers">
 ): number {
   return rows
-    .filter((r) => r.platform === platform && r.periodType === type)
+    .filter((r) => r.platform === platform && r.periodType === "Weekly")
     .reduce((s, r) => s + r[field], 0);
 }
 
@@ -80,26 +88,39 @@ export default async function SocialPage() {
         // ── Stats from sheet ──
         const latestMonthly = latestStat(statsRows, platform, "Monthly");
         const latestWeekly  = latestStat(statsRows, platform, "Weekly");
+        const latestAny     = latestStatAny(statsRows, platform);
         const hasSheetStats = !!latestMonthly || !!latestWeekly;
 
         // ── YouTube: prefer live API data ──
         const isYT = platform === "YouTube";
         const ytFollowers = ytChannel?.subscriberCount ?? 0;
 
+        // Followers: monthly first, then any weekly row (totalFollowers is always filled)
         const displayFollowers =
           isYT && ytEnabled
             ? ytFollowers
-            : latestMonthly?.totalFollowers ?? 0;
+            : (latestMonthly?.totalFollowers ?? latestAny?.totalFollowers ?? 0);
 
+        // Monthly views: use monthly row if available, else sum all weekly rows (month-to-date)
+        const weeklyViewsSum = sumWeekly(statsRows, platform, "views");
         const displayMonthlyViews =
           isYT && ytEnabled
-            ? null // YouTube totals all-time, not monthly — use sheet
-            : latestMonthly?.views ?? null;
+            ? null
+            : latestMonthly?.views ?? (weeklyViewsSum > 0 ? weeklyViewsSum : null);
 
+        // Monthly posts: same fallback
+        const weeklyPostsSum = sumWeekly(statsRows, platform, "postsPublished");
         const displayMonthlyPosts =
           isYT && ytEnabled
             ? null
-            : latestMonthly?.postsPublished ?? null;
+            : latestMonthly?.postsPublished ?? (weeklyPostsSum > 0 ? weeklyPostsSum : null);
+
+        // Label to show under monthly cards
+        const monthlyLabel = latestMonthly
+          ? latestMonthly.period
+          : latestWeekly
+          ? "Week-to-date"
+          : "";
 
         // ── Videos ──
         const sheetVideos = videoRows.filter((v) => v.platform === platform);
@@ -122,15 +143,20 @@ export default async function SocialPage() {
           sheetVideos.length > 0 ||
           (isYT && ytEnabled);
 
-        // Chart data (monthly stats from sheet)
-        const chartData = statsRows
-          .filter((r) => r.platform === platform && r.periodType === "Monthly")
-          .map((r) => ({
-            period:    r.period,
-            views:     r.views,
-            followers: r.newFollowers,
-            posts:     r.postsPublished,
-          }));
+        // Chart data — prefer monthly rows, fall back to weekly rows
+        const monthlyChartRows = statsRows.filter(
+          (r) => r.platform === platform && r.periodType === "Monthly"
+        );
+        const weeklyChartRows = statsRows.filter(
+          (r) => r.platform === platform && r.periodType === "Weekly"
+        );
+        const chartSourceRows = monthlyChartRows.length > 0 ? monthlyChartRows : weeklyChartRows;
+        const chartData = chartSourceRows.map((r) => ({
+          period:    r.period,
+          views:     r.views,
+          followers: r.newFollowers,
+          posts:     r.postsPublished,
+        }));
 
         return (
           <section key={platform} className="mb-14">
@@ -173,26 +199,30 @@ export default async function SocialPage() {
                   <StatCard
                     label="Followers"
                     value={displayFollowers > 0 ? formatCompact(displayFollowers) : "—"}
-                    sub={isYT && ytEnabled ? "Live from YouTube" : latestMonthly?.period ?? ""}
+                    sub={
+                      isYT && ytEnabled
+                        ? "Live from YouTube"
+                        : latestAny?.period ?? ""
+                    }
                   />
                   <StatCard
-                    label="Views This Month"
+                    label={latestMonthly ? "Views This Month" : "Views (Weekly Total)"}
                     value={
                       displayMonthlyViews !== null && displayMonthlyViews > 0
                         ? formatCompact(displayMonthlyViews)
                         : "—"
                     }
-                    sub={latestMonthly?.period ?? ""}
+                    sub={monthlyLabel}
                     highlight
                   />
                   <StatCard
-                    label="Posts This Month"
+                    label={latestMonthly ? "Posts This Month" : "Posts (Weekly Total)"}
                     value={
                       displayMonthlyPosts !== null && displayMonthlyPosts > 0
                         ? String(displayMonthlyPosts)
                         : "—"
                     }
-                    sub={latestMonthly?.period ?? ""}
+                    sub={monthlyLabel}
                   />
                   <StatCard
                     label="Views This Week"
