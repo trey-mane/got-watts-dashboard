@@ -1,0 +1,33 @@
+SCHEDULED EXPORT FAILURE REPORT
+================================
+Date: June 15, 2026
+Task: 2026 Revenue (06-15-26).csv
+Smart View: 🎯 2026 Revenue Tracking (smartViewId=15112)
+Target File: 2026 Revenue (06-15-26).csv
+
+RESULT: EXPORT FAILED — No project data returned by Coperniq
+
+WHAT WAS TRIED:
+- Navigated to https://app.coperniq.io/64/project-portfolio?smartViewId=15112
+- Confirmed logged in as Trey Micheletti (user ID 15664, company ID 64 "Got Watts")
+- JWT access token is valid (expires 2026-06-22)
+- Status filter: Active + On Hold (correct configuration)
+- The smart view loaded, but the project list showed 0 projects
+- Tried CSV export button — app said "Successfully exported the CSV" but file contained only headers
+
+API VERIFICATION:
+- REST: GET https://coperniq.dev/project-service/projects?companyId=64 → {"results":[],"total":0}
+- GraphQL: projectsConnection(first:5) → totalCount: 0
+- All queries with and without filters returned 0 results
+
+LAST SUCCESSFUL EXPORT: June 8, 2026 (157 projects)
+
+LIKELY CAUSE:
+Coperniq appears to be experiencing a backend issue where project data is not
+being returned for this account. The account is authenticated and can load
+smart views, but all project queries return empty results.
+
+ACTION REQUIRED:
+Please log into https://app.coperniq.io/64/project-portfolio to check if
+projects are visible. If not, contact Coperniq support. Once resolved,
+re-run the scheduled export manually or wait for the next scheduled run.
