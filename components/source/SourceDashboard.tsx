@@ -91,7 +91,7 @@ export function SourceDashboard({ allRows, label }: Props) {
   const cacLast90 = l3Closed  > 0 && l3AdSpend > 0 ? l3AdSpend / l3Closed : computeAvg(last3.map((r) => r.cac));
 
   // ── Year context label ──
-  const years = [...new Set(allRows.map((r) => getYear(r.period)).filter(Boolean))] as number[];
+  const years = Array.from(new Set(allRows.map((r) => getYear(r.period)).filter(Boolean))) as number[];
   const hasBothYears = years.includes(2025) && years.includes(2026);
 
   return (
