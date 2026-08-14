@@ -19,6 +19,16 @@ const mainNav = [
     ),
   },
   {
+    href: "/marketing",
+    label: "Marketing",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M1 13V9l4-3 3 2 4-5 3 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M1 13h14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.4" />
+      </svg>
+    ),
+  },
+  {
     href: "/trends",
     label: "Trends",
     icon: (
