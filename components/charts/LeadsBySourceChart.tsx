@@ -47,7 +47,7 @@ export function LeadsBySourceChart({ data }: Props) {
           layout="vertical"
           margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
         >
-          <CartesianGrid horizontal={false} stroke="#232323" />
+          <CartesianGrid horizontal={false} stroke="#E5E3DF" />
           <XAxis
             type="number"
             tick={{ fill: "#666", fontSize: 11, fontFamily: "DM Sans" }}
@@ -58,7 +58,7 @@ export function LeadsBySourceChart({ data }: Props) {
             type="category"
             dataKey="name"
             width={90}
-            tick={{ fill: "#A3A3A3", fontSize: 11, fontFamily: "DM Sans" }}
+            tick={{ fill: "#6B6B6B", fontSize: 11, fontFamily: "DM Sans" }}
             axisLine={false}
             tickLine={false}
           />

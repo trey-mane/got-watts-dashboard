@@ -7,9 +7,7 @@ import { cn } from "@/lib/utils";
 import { ALL_SOURCES, SOURCE_LABELS, Source } from "@/types";
 
 const mainNav = [
-  { href: "/overview", label: "Overview" },
   { href: "/marketing", label: "Marketing" },
-  { href: "/trends", label: "Trends" },
   { href: "/social", label: "Social Media" },
 ];
 

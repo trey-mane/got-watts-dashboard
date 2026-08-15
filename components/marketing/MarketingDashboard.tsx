@@ -364,7 +364,7 @@ export function MarketingDashboard({ allData }: Props) {
               <div className="h-[5px] bg-yellow-500"               style={{ width: "18.7%" }} />
               <div className="h-[5px] rounded-r-full flex-1 bg-green-500" />
               <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0F0F0F] transition-all duration-500"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-surface-card transition-all duration-500"
                 style={{ left: gaugePos(cacLtgpRatio), background: "#EA6B2A" }}
               />
             </div>

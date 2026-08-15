@@ -61,7 +61,7 @@ export function TrendsLeadsChart({ data, sources }: Props) {
       <p className="text-text-primary text-sm font-medium mb-5">Total Leads by Month (All Sources)</p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid stroke="#232323" />
+          <CartesianGrid stroke="#E5E3DF" />
           <XAxis
             dataKey="period"
             tick={{ fill: "#666", fontSize: 11, fontFamily: "DM Sans" }}
@@ -75,7 +75,7 @@ export function TrendsLeadsChart({ data, sources }: Props) {
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ fontSize: "11px", fontFamily: "DM Sans", color: "#A3A3A3" }}
+            wrapperStyle={{ fontSize: "11px", fontFamily: "DM Sans", color: "#6B6B6B" }}
             formatter={(value) => value.replace(/_/g, " ")}
           />
           {sources.map((source, i) => {

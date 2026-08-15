@@ -7,33 +7,12 @@ import { ALL_SOURCES, SOURCE_LABELS, Source } from "@/types";
 
 const mainNav = [
   {
-    href: "/overview",
-    label: "Overview",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" />
-        <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5" />
-        <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5" />
-        <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
     href: "/marketing",
     label: "Marketing",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M1 13V9l4-3 3 2 4-5 3 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M1 13h14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.4" />
-      </svg>
-    ),
-  },
-  {
-    href: "/trends",
-    label: "Trends",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M1 12L5 7L8 10L12 4L15 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },

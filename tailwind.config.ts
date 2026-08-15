@@ -15,15 +15,15 @@ const config: Config = {
           dark: "#C75520",
         },
         surface: {
-          DEFAULT: "#0F0F0F",
-          card: "#161616",
-          border: "#232323",
-          muted: "#1C1C1C",
+          DEFAULT: "#F5F4F2",
+          card: "#FFFFFF",
+          border: "#E5E3DF",
+          muted: "#EEECE9",
         },
         text: {
-          primary: "#F5F5F5",
-          secondary: "#A3A3A3",
-          muted: "#666666",
+          primary: "#171717",
+          secondary: "#525252",
+          muted: "#A3A3A3",
         },
       },
       fontFamily: {

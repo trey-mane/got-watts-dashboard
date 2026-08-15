@@ -75,7 +75,7 @@ export function RevenueBySourceChart({ data }: Props) {
           barCategoryGap="30%"
           barGap={3}
         >
-          <CartesianGrid horizontal={false} stroke="#232323" />
+          <CartesianGrid horizontal={false} stroke="#E5E3DF" />
           <XAxis
             type="number"
             tickFormatter={(v) => formatCurrency(v)}
@@ -87,7 +87,7 @@ export function RevenueBySourceChart({ data }: Props) {
             type="category"
             dataKey="name"
             width={90}
-            tick={{ fill: "#A3A3A3", fontSize: 11, fontFamily: "DM Sans" }}
+            tick={{ fill: "#6B6B6B", fontSize: 11, fontFamily: "DM Sans" }}
             axisLine={false}
             tickLine={false}
           />
@@ -99,7 +99,7 @@ export function RevenueBySourceChart({ data }: Props) {
             wrapperStyle={{
               fontSize: "11px",
               fontFamily: "DM Sans",
-              color: "#A3A3A3",
+              color: "#6B6B6B",
             }}
           />
           <Bar dataKey="Contract Value" radius={[0, 4, 4, 0]}>

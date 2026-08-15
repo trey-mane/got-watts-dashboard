@@ -18,8 +18,8 @@ html {
 }
 
 body {
-  background-color: #0F0F0F;
-  color: #F5F5F5;
+  background-color: #F5F4F2;
+  color: #171717;
 }
 
 /* Custom scrollbar */
@@ -28,24 +28,25 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #161616;
+  background: #EEECE9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #D4D2CE;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: #B5B2AD;
 }
 
 /* Recharts overrides */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: #161616 !important;
-  border: 1px solid #232323 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E5E3DF !important;
   border-radius: 8px !important;
+  color: #171717 !important;
 }
 
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: #232323;
+  stroke: #E5E3DF;
 }

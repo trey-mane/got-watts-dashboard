@@ -65,7 +65,7 @@ export function TrendsRevenueChart({ data }: Props) {
       </p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-          <CartesianGrid stroke="#232323" />
+          <CartesianGrid stroke="#E5E3DF" />
           <XAxis
             dataKey="period"
             tick={{ fill: "#666", fontSize: 11, fontFamily: "DM Sans" }}
@@ -84,7 +84,7 @@ export function TrendsRevenueChart({ data }: Props) {
             wrapperStyle={{
               fontSize: "11px",
               fontFamily: "DM Sans",
-              color: "#A3A3A3",
+              color: "#6B6B6B",
             }}
           />
           <Line

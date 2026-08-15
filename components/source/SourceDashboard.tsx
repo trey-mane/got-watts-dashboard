@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { SourceRow } from "@/types";
+import { SourceRow, Source } from "@/types";
 import { StatCard } from "@/components/ui/StatCard";
 import { LeadsLineChart } from "@/components/charts/LeadsLineChart";
 import { RevenueLineChart } from "@/components/charts/RevenueLineChart";
@@ -11,6 +11,12 @@ import {
   formatNumber,
   formatROAS,
 } from "@/lib/utils";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const LTGP = 11626.90;
+const LOG_MAX = Math.log(41);
+const PAID_SOURCES = new Set<Source>(["Meta_Ads", "Google_Ads", "Yelp"]);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -22,10 +28,12 @@ function getYear(period: string): number | null {
   return null;
 }
 
-function computeAvg(arr: number[]): number {
-  const nonZero = arr.filter((v) => v > 0);
-  if (!nonZero.length) return 0;
-  return nonZero.reduce((s, v) => s + v, 0) / nonZero.length;
+function gaugePos(ratio: number): string {
+  return Math.min(95, (Math.log(ratio + 1) / LOG_MAX) * 100).toFixed(1) + "%";
+}
+
+function formatRatio(r: number): string {
+  return (r >= 10 ? Math.round(r) : r.toFixed(1)) + ":1";
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -33,12 +41,14 @@ function computeAvg(arr: number[]): number {
 interface Props {
   allRows: SourceRow[];
   label: string;
+  source: Source;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function SourceDashboard({ allRows, label }: Props) {
+export function SourceDashboard({ allRows, label, source }: Props) {
   const [show2025, setShow2025] = useState(false);
+  const isPaid = PAID_SOURCES.has(source);
 
   const rows = useMemo(
     () =>
@@ -60,35 +70,16 @@ export function SourceDashboard({ allRows, label }: Props) {
   // ── Aggregates ──
   const totalLeads         = rows.reduce((s, r) => s + r.leads, 0);
   const totalClosed        = rows.reduce((s, r) => s + r.closed, 0);
-  const totalInstalls      = rows.reduce((s, r) => s + r.installs, 0);
   const totalAdSpend       = rows.reduce((s, r) => s + r.adSpend, 0);
   const totalContractValue = rows.reduce((s, r) => s + r.contractValue, 0);
   const totalRevenue       = rows.reduce((s, r) => s + r.grossSales, 0);
   const overallCloseRate   = totalLeads > 0 ? (totalClosed / totalLeads) * 100 : 0;
 
-  // CPL — avg of sheet values, fall back to derived if blank
-  const avgCPL = computeAvg(rows.map((r) => r.cpl)) ||
-    (totalLeads > 0 && totalAdSpend > 0 ? totalAdSpend / totalLeads : 0);
-
-  // CAC — compute from raw totals (more accurate than avg of monthly averages;
-  // also avoids showing "—" when sheet formula cells have #DIV/0! errors)
-  const avgCAC = totalClosed > 0 && totalAdSpend > 0
-    ? totalAdSpend / totalClosed
-    : computeAvg(rows.map((r) => r.cac));
-
-  // ROAS — same approach
-  const avgROAS = totalAdSpend > 0 && totalRevenue > 0
-    ? totalRevenue / totalAdSpend
-    : computeAvg(rows.map((r) => r.roas));
-
-  // Last-90-day window = last 3 monthly rows
-  const last3 = rows.slice(-3);
-  const l3AdSpend = last3.reduce((s, r) => s + r.adSpend, 0);
-  const l3Closed  = last3.reduce((s, r) => s + r.closed, 0);
-  const l3Leads   = last3.reduce((s, r) => s + r.leads, 0);
-
-  const cplLast90 = l3Leads   > 0 && l3AdSpend > 0 ? l3AdSpend / l3Leads  : computeAvg(last3.map((r) => r.cpl));
-  const cacLast90 = l3Closed  > 0 && l3AdSpend > 0 ? l3AdSpend / l3Closed : computeAvg(last3.map((r) => r.cac));
+  // Derived totals (not averages of monthly averages)
+  const cpl  = totalLeads > 0 && totalAdSpend > 0 ? totalAdSpend / totalLeads : 0;
+  const cac  = totalClosed > 0 && totalAdSpend > 0 ? totalAdSpend / totalClosed : 0;
+  const roas = totalAdSpend > 0 && totalRevenue > 0 ? totalRevenue / totalAdSpend : 0;
+  const ltgpCacRatio = cac > 0 ? LTGP / cac : 0;
 
   // ── Year context label ──
   const years = Array.from(new Set(allRows.map((r) => getYear(r.period)).filter(Boolean))) as number[];
@@ -100,8 +91,8 @@ export function SourceDashboard({ allRows, label }: Props) {
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="w-12 h-12 rounded-full bg-surface-muted border border-surface-border flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="8" stroke="#666" strokeWidth="1.5" />
-              <path d="M10 6v4M10 14h.01" stroke="#666" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="8" stroke="#999" strokeWidth="1.5" />
+              <path d="M10 6v4M10 14h.01" stroke="#999" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </div>
           <div className="text-center">
@@ -119,9 +110,7 @@ export function SourceDashboard({ allRows, label }: Props) {
           {hasBothYears && (
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <span className="text-text-primary text-xs font-sans font-medium">
-                  2026
-                </span>
+                <span className="text-text-primary text-xs font-sans font-medium">2026</span>
                 <span className="text-text-muted text-xs font-sans">
                   {show2025 ? "· 2025 included" : "only"}
                 </span>
@@ -154,10 +143,8 @@ export function SourceDashboard({ allRows, label }: Props) {
           )}
 
           {/* ── Pipeline ── */}
-          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
-            Pipeline
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">Pipeline</p>
+          <div className={`grid gap-4 mb-6 ${isPaid ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3"}`}>
             <StatCard label="Total Leads" value={formatNumber(totalLeads)} />
             <StatCard
               label="Contracts Signed"
@@ -166,72 +153,89 @@ export function SourceDashboard({ allRows, label }: Props) {
               highlight
             />
             <StatCard
-              label="Projects Installed"
-              value={totalInstalls > 0 ? formatNumber(totalInstalls) : "—"}
-              sub="Recognized (lagging)"
-            />
-            <StatCard
               label="Close Rate"
               value={overallCloseRate > 0 ? formatPercent(overallCloseRate) : "—"}
               highlight
             />
-            <StatCard
-              label="Total Ad Spend"
-              value={totalAdSpend > 0 ? formatCurrency(totalAdSpend) : "—"}
-            />
+            {isPaid && (
+              <StatCard
+                label="Ad Spend"
+                value={totalAdSpend > 0 ? formatCurrency(totalAdSpend) : "—"}
+              />
+            )}
           </div>
 
           {/* ── Revenue ── */}
-          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
-            Revenue
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">Revenue</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <StatCard
               label="Contract Value"
               value={totalContractValue > 0 ? formatCurrency(totalContractValue) : "—"}
               sub="Signed bookings total"
               highlight
             />
-            <StatCard
-              label="Install Revenue"
-              value={totalRevenue > 0 ? formatCurrency(totalRevenue) : "—"}
-              sub="Recognized on completion"
-              highlight
-            />
           </div>
 
-          {/* ── Efficiency ── */}
-          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
-            Efficiency
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
-            <StatCard
-              label="Avg CPL"
-              value={avgCPL > 0 ? formatCurrency(avgCPL) : "—"}
-              sub="Cost per lead"
-            />
-            <StatCard
-              label="CPL Last 90 Days"
-              value={cplLast90 > 0 ? formatCurrency(cplLast90) : "—"}
-              sub="~last 3 months"
-            />
-            <StatCard
-              label="Avg CAC"
-              value={avgCAC > 0 ? formatCurrency(avgCAC) : "—"}
-              sub="Cost to acquire a client"
-            />
-            <StatCard
-              label="CAC Last 90 Days"
-              value={cacLast90 > 0 ? formatCurrency(cacLast90) : "—"}
-              sub="~last 3 months"
-            />
-            <StatCard
-              label="Avg ROAS"
-              value={avgROAS > 0 ? formatROAS(avgROAS) : "—"}
-              sub="Return on ad spend"
-              highlight
-            />
-          </div>
+          {/* ── Efficiency (paid only) ── */}
+          {isPaid && (
+            <>
+              <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">Efficiency</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <StatCard
+                  label="CPL"
+                  value={cpl > 0 ? formatCurrency(Math.round(cpl)) : "—"}
+                  sub="Cost per lead"
+                />
+                <StatCard
+                  label="CAC"
+                  value={cac > 0 ? formatCurrency(Math.round(cac)) : "—"}
+                  sub="Cost to acquire a client"
+                />
+                <StatCard
+                  label="ROAS"
+                  value={roas > 0 ? formatROAS(roas) : "—"}
+                  sub="Return on ad spend"
+                  highlight
+                />
+              </div>
+
+              {/* ── LTGP:CAC Gauge ── */}
+              <div className="bg-surface-card border border-surface-border rounded-2xl p-5 mb-8">
+                <div className="flex items-baseline gap-3 mb-1">
+                  <p className="text-text-secondary text-xs font-medium font-sans">LTGP : CAC</p>
+                  <p className="text-text-muted text-[11px] font-sans">$11,626.90 lifetime gross profit per customer</p>
+                </div>
+                <p className="text-3xl font-bold text-brand tabular-nums mb-4 leading-none">
+                  {ltgpCacRatio > 0 ? formatRatio(ltgpCacRatio) : "—"}
+                </p>
+                {ltgpCacRatio > 0 && (
+                  <>
+                    <div className="relative h-[5px] flex rounded-full overflow-visible mb-5">
+                      <div className="h-[5px] rounded-l-full bg-red-500"   style={{ width: "18.6%" }} />
+                      <div className="h-[5px] bg-yellow-500"               style={{ width: "18.7%" }} />
+                      <div className="h-[5px] rounded-r-full flex-1 bg-green-500" />
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-surface-card transition-all duration-500"
+                        style={{ left: gaugePos(ltgpCacRatio), background: "#EA6B2A" }}
+                      />
+                    </div>
+                    <div className="flex gap-4 flex-wrap">
+                      {[
+                        { color: "#ef4444", label: "< 1:1 — losing money" },
+                        { color: "#eab308", label: "1–3:1 — won't scale" },
+                        { color: "#22c55e", label: "3:1+ — takes off" },
+                      ].map((l) => (
+                        <div key={l.label} className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.color }} />
+                          <span className="text-text-muted text-[11px] font-sans">{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
 
           {/* ── Charts ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -250,14 +254,9 @@ export function SourceDashboard({ allRows, label }: Props) {
                       "Period",
                       "Leads",
                       "Contracts",
-                      "Installs",
                       "Close Rate",
-                      "Ad Spend",
-                      "CPL",
-                      "CAC",
-                      "ROAS",
+                      ...(isPaid ? ["Ad Spend", "CPL", "CAC", "ROAS"] : []),
                       "Contract Value",
-                      "Install Revenue",
                     ].map((h) => (
                       <th
                         key={h}
@@ -292,28 +291,26 @@ export function SourceDashboard({ allRows, label }: Props) {
                         <td className="px-4 py-3 text-text-secondary">{formatNumber(row.leads)}</td>
                         <td className="px-4 py-3 text-text-secondary">{formatNumber(row.closed)}</td>
                         <td className="px-4 py-3 text-text-secondary">
-                          {row.installs > 0 ? formatNumber(row.installs) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
                           {row.closeRate > 0 ? formatPercent(row.closeRate) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {row.adSpend > 0 ? formatCurrency(row.adSpend) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {row.cpl > 0 ? formatCurrency(row.cpl) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {row.cac > 0 ? formatCurrency(row.cac) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {row.roas > 0 ? formatROAS(row.roas) : "—"}
-                        </td>
+                        {isPaid && (
+                          <>
+                            <td className="px-4 py-3 text-text-secondary">
+                              {row.adSpend > 0 ? formatCurrency(row.adSpend) : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-text-secondary">
+                              {row.cpl > 0 ? formatCurrency(row.cpl) : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-text-secondary">
+                              {row.cac > 0 ? formatCurrency(row.cac) : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-text-secondary">
+                              {row.roas > 0 ? formatROAS(row.roas) : "—"}
+                            </td>
+                          </>
+                        )}
                         <td className="px-4 py-3 text-brand font-medium">
                           {row.contractValue > 0 ? formatCurrency(row.contractValue) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {row.grossSales > 0 ? formatCurrency(row.grossSales) : "—"}
                         </td>
                       </tr>
                     );
@@ -322,7 +319,7 @@ export function SourceDashboard({ allRows, label }: Props) {
               </table>
             </div>
             <p className="text-text-muted text-[10px] mt-2 font-sans">
-              Contract Value = value of deals signed that month · Install Revenue = value of jobs completed that month
+              Contract Value = value of deals signed that month
             </p>
           </div>
         </>

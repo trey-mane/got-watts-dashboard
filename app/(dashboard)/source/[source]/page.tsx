@@ -23,7 +23,7 @@ export default async function SourcePage({ params }: PageProps) {
     <div>
       <SourceNav current={source} />
       <SectionHeader title={label} subtitle="Monthly performance breakdown" />
-      <SourceDashboard allRows={rows} label={label} />
+      <SourceDashboard allRows={rows} label={label} source={source} />
     </div>
   );
 }
