@@ -7,15 +7,19 @@ import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LTGP = 11626.90;
-const LOG_MAX = Math.log(41); // log scale max = 40:1 ratio
+const LOG_MAX = Math.log(41);
 
-type Period = "month" | "d60" | "d90" | "ytd";
+// Paid sources only — CPL, CAC, and the gauge are paid-media metrics
+const PAID_SOURCES = new Set<Source>(["Meta_Ads", "Google_Ads", "Yelp"]);
+
+type Period = "mtd" | "m2" | "m3" | "m6" | "ytd";
 
 const PERIOD_LABELS: Record<Period, string> = {
-  month: "This month",
-  d60:   "Last 60 days",
-  d90:   "Last 90 days",
-  ytd:   "YTD",
+  mtd: "MTD",
+  m2:  "Last 2 months",
+  m3:  "Last 3 months",
+  m6:  "Last 6 months",
+  ytd: "YTD",
 };
 
 const SOURCE_CONFIG: Partial<Record<string, { label: string; color: string }>> = {
@@ -51,19 +55,25 @@ function parsePeriodDate(period: string): Date | null {
   return new Date(year, month, 1);
 }
 
-function filterByPeriod(rows: SourceRow[], period: Period): SourceRow[] {
+// Returns the earliest Date a row must fall on or after to be included
+function cutoffFor(period: Period): Date {
   const now = new Date();
   const yr  = now.getFullYear();
-  const mo  = now.getMonth();
+  const mo  = now.getMonth(); // 0-indexed
+  switch (period) {
+    case "mtd": return new Date(yr, mo, 1);
+    case "m2":  return new Date(yr, mo - 1, 1);
+    case "m3":  return new Date(yr, mo - 2, 1);
+    case "m6":  return new Date(yr, mo - 5, 1);
+    case "ytd": return new Date(yr, 0, 1);
+  }
+}
 
+function filterByPeriod(rows: SourceRow[], period: Period): SourceRow[] {
+  const cutoff = cutoffFor(period);
   return rows.filter((r) => {
     const d = parsePeriodDate(r.period);
-    if (!d) return false;
-    if (period === "month") return d.getFullYear() === yr && d.getMonth() === mo;
-    if (period === "d60")   return d >= new Date(yr, mo - 1, 1);
-    if (period === "d90")   return d >= new Date(yr, mo - 2, 1);
-    if (period === "ytd")   return d.getFullYear() === yr;
-    return false;
+    return d !== null && d >= cutoff;
   });
 }
 
@@ -77,15 +87,17 @@ function formatRatio(r: number): string {
 
 function fmtCompact(n: number): string {
   if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "$" + Math.round(n / 1_000) + "K";
-  return "$" + n.toLocaleString();
+  if (n >= 1_000)     return "$" + (n / 1_000).toFixed(1) + "K";
+  return "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Stat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function Stat({ label, value, sub, accent, dim }: {
+  label: string; value: string; sub?: string; accent?: boolean; dim?: boolean
+}) {
   return (
-    <div className="bg-surface-card border border-surface-border rounded-2xl px-4 py-4">
+    <div className={`bg-surface-card border border-surface-border rounded-2xl px-4 py-4 ${dim ? "opacity-50" : ""}`}>
       <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-2">{label}</p>
       <p className={`text-2xl font-bold font-sans tabular-nums leading-none ${accent ? "text-brand" : "text-text-primary"}`}>
         {value}
@@ -96,12 +108,12 @@ function Stat({ label, value, sub, accent }: { label: string; value: string; sub
 }
 
 function ChannelCard({ label, color, rows }: { label: string; color: string; rows: SourceRow[] }) {
-  const leads    = rows.reduce((s, r) => s + r.leads, 0);
+  const leads     = rows.reduce((s, r) => s + r.leads, 0);
   const contracts = rows.reduce((s, r) => s + r.closed, 0);
-  const spend    = rows.reduce((s, r) => s + r.adSpend, 0);
-  const cpl      = leads > 0 && spend > 0 ? spend / leads : 0;
-  const cac      = contracts > 0 && spend > 0 ? spend / contracts : 0;
-  const ratio    = cac > 0 ? LTGP / cac : 0;
+  const spend     = rows.reduce((s, r) => s + r.adSpend, 0);
+  const cpl       = leads > 0 && spend > 0 ? spend / leads : 0;
+  const cac       = contracts > 0 && spend > 0 ? spend / contracts : 0;
+  const ratio     = cac > 0 ? LTGP / cac : 0;
 
   const row = (lbl: string, val: string, bright = false) => (
     <div className="flex items-baseline justify-between py-1.5 border-b border-surface-border/50 last:border-0">
@@ -121,7 +133,7 @@ function ChannelCard({ label, color, rows }: { label: string; color: string; row
       {row("Ad spend", spend > 0 ? fmtCompact(spend) : "—")}
       {row("CPL", cpl > 0 ? formatCurrency(Math.round(cpl)) : "—")}
       {row("CAC", cac > 0 ? formatCurrency(Math.round(cac)) : "—")}
-      {row("CAC:LTGP", ratio > 0 ? formatRatio(ratio) : "—", true)}
+      {row("CAC : LTGP", ratio > 0 ? formatRatio(ratio) : "—", true)}
     </div>
   );
 }
@@ -133,8 +145,9 @@ interface Props {
 }
 
 export function MarketingDashboard({ allData }: Props) {
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod] = useState<Period>("mtd");
 
+  // Filter every source by the selected period
   const filtered = useMemo<Record<string, SourceRow[]>>(() => {
     const out: Record<string, SourceRow[]> = {};
     for (const [k, rows] of Object.entries(allData)) {
@@ -143,19 +156,31 @@ export function MarketingDashboard({ allData }: Props) {
     return out;
   }, [allData, period]);
 
-  const allRows = useMemo(() => Object.values(filtered).flat(), [filtered]);
+  // All sources combined — for pipeline / revenue totals
+  const allRows  = useMemo(() => Object.values(filtered).flat(), [filtered]);
 
-  // ── Aggregates ──
-  const totalLeads    = allRows.reduce((s, r) => s + r.leads, 0);
+  // Paid sources only — for CPL, CAC, and the efficiency gauge
+  const paidRows = useMemo(
+    () => CHANNEL_KEYS.flatMap((ch) => filtered[ch.key] ?? []),
+    [filtered]
+  );
+
+  // ── All-source totals (pipeline health) ──
+  const totalLeads     = allRows.reduce((s, r) => s + r.leads, 0);
   const totalContracts = allRows.reduce((s, r) => s + r.closed, 0);
-  const totalAdSpend  = allRows.reduce((s, r) => s + r.adSpend, 0);
+  const closeRate      = totalLeads > 0 ? (totalContracts / totalLeads) * 100 : 0;
   const totalContractValue = allRows.reduce((s, r) => s + r.contractValue, 0);
-  const closeRate     = totalLeads > 0 ? (totalContracts / totalLeads) * 100 : 0;
-  const cpl           = totalLeads > 0 && totalAdSpend > 0 ? totalAdSpend / totalLeads : 0;
-  const cac           = totalContracts > 0 && totalAdSpend > 0 ? totalAdSpend / totalContracts : 0;
-  const cacLtgpRatio  = cac > 0 ? LTGP / cac : 0;
 
-  // ── Source breakdown ──
+  // ── Paid-only totals (cost metrics) ──
+  const paidAdSpend   = paidRows.reduce((s, r) => s + r.adSpend, 0);
+  const paidLeads     = paidRows.reduce((s, r) => s + r.leads, 0);
+  const paidContracts = paidRows.reduce((s, r) => s + r.closed, 0);
+
+  const cpl          = paidLeads > 0 && paidAdSpend > 0 ? paidAdSpend / paidLeads : 0;
+  const cac          = paidContracts > 0 && paidAdSpend > 0 ? paidAdSpend / paidContracts : 0;
+  const cacLtgpRatio = cac > 0 ? LTGP / cac : 0;
+
+  // ── Source breakdown for bar chart ──
   const sourceLeads = useMemo(() =>
     Object.entries(filtered)
       .map(([key, rows]) => ({
@@ -173,7 +198,7 @@ export function MarketingDashboard({ allData }: Props) {
   return (
     <div>
       {/* ── Period tabs ── */}
-      <div className="flex gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-8">
         {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
           <button
             key={p}
@@ -200,19 +225,19 @@ export function MarketingDashboard({ allData }: Props) {
           <p className="text-text-muted text-[11px] font-sans mt-2">Signed deals · committed revenue</p>
         </div>
         <div className="bg-surface-card border border-surface-border rounded-2xl px-5 py-5">
-          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-2">Ad spend</p>
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-2">Paid ad spend</p>
           <p className="text-4xl font-bold text-text-primary tabular-nums leading-none">
-            {totalAdSpend > 0 ? fmtCompact(totalAdSpend) : "—"}
+            {paidAdSpend > 0 ? fmtCompact(paidAdSpend) : "—"}
           </p>
-          <p className="text-text-muted text-[11px] font-sans mt-2">Across Meta · Google · Yelp</p>
+          <p className="text-text-muted text-[11px] font-sans mt-2">Meta · Google · Yelp</p>
         </div>
       </div>
 
       {/* ── Pipeline ── */}
       <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">Pipeline</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <Stat label="Total leads" value={formatNumber(totalLeads)} />
-        <Stat label="Contracts signed" value={formatNumber(totalContracts)} sub="Bookings" accent />
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Stat label="Total leads" value={totalLeads > 0 ? formatNumber(totalLeads) : "—"} />
+        <Stat label="Contracts signed" value={totalContracts > 0 ? formatNumber(totalContracts) : "—"} sub="All sources" accent />
         <Stat label="Close rate" value={closeRate > 0 ? formatPercent(closeRate) : "—"} accent />
       </div>
 
@@ -237,20 +262,35 @@ export function MarketingDashboard({ allData }: Props) {
         </div>
       )}
 
-      {/* ── Optimization signals ── */}
-      <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">Optimization signals</p>
+      {/* ── Optimization signals (paid-only) ── */}
+      <div className="flex items-baseline gap-2 mb-3">
+        <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans">Optimization signals</p>
+        <p className="text-text-muted text-[10px] font-sans">· paid channels only</p>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-        <Stat label="CPL" value={cpl > 0 ? formatCurrency(Math.round(cpl)) : "—"} sub="Cost per lead" />
-        <Stat label="CAC" value={cac > 0 ? formatCurrency(Math.round(cac)) : "—"} sub="Cost to acquire" />
-        <Stat label="Close rate" value={closeRate > 0 ? formatPercent(closeRate) : "—"} accent />
+        <Stat
+          label="Paid CPL"
+          value={cpl > 0 ? formatCurrency(Math.round(cpl)) : "—"}
+          sub="Paid ad spend ÷ paid leads"
+        />
+        <Stat
+          label="Paid CAC"
+          value={cac > 0 ? formatCurrency(Math.round(cac)) : "—"}
+          sub="Paid ad spend ÷ paid contracts"
+        />
+        <Stat
+          label="Close rate"
+          value={closeRate > 0 ? formatPercent(closeRate) : "—"}
+          sub="All sources"
+          accent
+        />
       </div>
 
       {/* ── CAC:LTGP Gauge ── */}
       <div className="bg-surface-card border border-surface-border rounded-2xl p-5 mb-4">
-        <div className="flex items-baseline justify-between mb-1">
-          <p className="text-text-secondary text-xs font-sans">
-            CAC : LTGP&nbsp;&nbsp;<span className="text-text-muted">$11,626.90 lifetime gross profit / customer</span>
-          </p>
+        <div className="flex items-baseline gap-3 mb-1">
+          <p className="text-text-secondary text-xs font-medium font-sans">Paid CAC : LTGP</p>
+          <p className="text-text-muted text-[11px] font-sans">$11,626.90 lifetime gross profit per customer</p>
         </div>
         <p className="text-3xl font-bold text-brand tabular-nums mb-4 leading-none">
           {cacLtgpRatio > 0 ? formatRatio(cacLtgpRatio) : "—"}
@@ -258,10 +298,10 @@ export function MarketingDashboard({ allData }: Props) {
         {cacLtgpRatio > 0 && (
           <>
             <div className="relative h-[5px] flex rounded-full overflow-visible mb-5">
-              <div className="h-[5px] rounded-l-full bg-red-500"   style={{ width: "37.3%" }} />
-              <div className="h-[5px] bg-yellow-500"               style={{ width: "10.9%" }} />
-              <div className="h-[5px] bg-green-500"                style={{ width: "16.4%" }} />
-              <div className="h-[5px] rounded-r-full flex-1"       style={{ background: "#EA6B2A" }} />
+              <div className="h-[5px] rounded-l-full bg-red-500"  style={{ width: "37.3%" }} />
+              <div className="h-[5px] bg-yellow-500"              style={{ width: "10.9%" }} />
+              <div className="h-[5px] bg-green-500"               style={{ width: "16.4%" }} />
+              <div className="h-[5px] rounded-r-full flex-1"      style={{ background: "#EA6B2A" }} />
               <div
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0F0F0F] transition-all duration-500"
                 style={{ left: gaugePos(cacLtgpRatio), background: "#EA6B2A" }}
@@ -287,7 +327,7 @@ export function MarketingDashboard({ allData }: Props) {
       {/* ── Placeholder signals ── */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         {["Speed to lead avg", "Show rate"].map((label) => (
-          <div key={label} className="bg-surface-card border border-dashed border-surface-border rounded-2xl px-4 py-4 opacity-50">
+          <div key={label} className="bg-surface-card border border-dashed border-surface-border rounded-2xl px-4 py-4 opacity-40">
             <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-2">{label}</p>
             <p className="text-text-muted text-sm font-sans">Track in sheet →</p>
           </div>
