@@ -285,7 +285,7 @@ export function SourceDashboard({ allRows, label }: Props) {
                           {row.period}
                           {is2025 && (
                             <span className="ml-1.5 text-[9px] text-text-muted uppercase tracking-widest">
-                              '25
+                              &apos;25
                             </span>
                           )}
                         </td>
