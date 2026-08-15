@@ -111,6 +111,7 @@ function ChannelCard({ label, color, rows }: { label: string; color: string; row
   const leads     = rows.reduce((s, r) => s + r.leads, 0);
   const contracts = rows.reduce((s, r) => s + r.closed, 0);
   const spend     = rows.reduce((s, r) => s + r.adSpend, 0);
+  const closeRate = leads > 0 ? (contracts / leads) * 100 : 0;
   const cpl       = leads > 0 && spend > 0 ? spend / leads : 0;
   const cac       = contracts > 0 && spend > 0 ? spend / contracts : 0;
   const ratio     = cac > 0 ? LTGP / cac : 0;
@@ -130,6 +131,7 @@ function ChannelCard({ label, color, rows }: { label: string; color: string; row
       </div>
       {row("Leads", leads > 0 ? formatNumber(leads) : "—")}
       {row("Contracts signed", contracts > 0 ? formatNumber(contracts) : "—")}
+      {row("Close rate", closeRate > 0 ? formatPercent(closeRate) : "—")}
       {row("Ad spend", spend > 0 ? fmtCompact(spend) : "—")}
       {row("CPL", cpl > 0 ? formatCurrency(Math.round(cpl)) : "—")}
       {row("CAC", cac > 0 ? formatCurrency(Math.round(cac)) : "—")}
