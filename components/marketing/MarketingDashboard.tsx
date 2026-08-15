@@ -133,7 +133,7 @@ function ChannelCard({ label, color, rows }: { label: string; color: string; row
       {row("Ad spend", spend > 0 ? fmtCompact(spend) : "—")}
       {row("CPL", cpl > 0 ? formatCurrency(Math.round(cpl)) : "—")}
       {row("CAC", cac > 0 ? formatCurrency(Math.round(cac)) : "—")}
-      {row("CAC : LTGP", ratio > 0 ? formatRatio(ratio) : "—", true)}
+      {row("LTGP : CAC", ratio > 0 ? formatRatio(ratio) : "—", true)}
     </div>
   );
 }
@@ -286,10 +286,10 @@ export function MarketingDashboard({ allData }: Props) {
         />
       </div>
 
-      {/* ── CAC:LTGP Gauge ── */}
+      {/* ── LTGP:CAC Gauge ── */}
       <div className="bg-surface-card border border-surface-border rounded-2xl p-5 mb-4">
         <div className="flex items-baseline gap-3 mb-1">
-          <p className="text-text-secondary text-xs font-medium font-sans">Paid CAC : LTGP</p>
+          <p className="text-text-secondary text-xs font-medium font-sans">Paid LTGP : CAC</p>
           <p className="text-text-muted text-[11px] font-sans">$11,626.90 lifetime gross profit per customer</p>
         </div>
         <p className="text-3xl font-bold text-brand tabular-nums mb-4 leading-none">
