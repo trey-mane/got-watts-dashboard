@@ -12,14 +12,15 @@ const LOG_MAX = Math.log(41);
 // Paid sources only — CPL, CAC, and the gauge are paid-media metrics
 const PAID_SOURCES = new Set<Source>(["Meta_Ads", "Google_Ads", "Yelp"]);
 
-type Period = "mtd" | "m2" | "m3" | "m6" | "ytd";
+type Period = "mtd" | "last" | "m2" | "m3" | "m6" | "ytd";
 
 const PERIOD_LABELS: Record<Period, string> = {
-  mtd: "MTD",
-  m2:  "Last 2 months",
-  m3:  "Last 3 months",
-  m6:  "Last 6 months",
-  ytd: "YTD",
+  mtd:  "MTD",
+  last: "Last month",
+  m2:   "Last 2 months",
+  m3:   "Last 3 months",
+  m6:   "Last 6 months",
+  ytd:  "YTD",
 };
 
 const SOURCE_CONFIG: Partial<Record<string, { label: string; color: string }>> = {
@@ -56,24 +57,22 @@ function parsePeriodDate(period: string): Date | null {
 }
 
 // Returns the earliest Date a row must fall on or after to be included
-function cutoffFor(period: Period): Date {
+function filterByPeriod(rows: SourceRow[], period: Period): SourceRow[] {
   const now = new Date();
   const yr  = now.getFullYear();
   const mo  = now.getMonth(); // 0-indexed
-  switch (period) {
-    case "mtd": return new Date(yr, mo, 1);
-    case "m2":  return new Date(yr, mo - 1, 1);
-    case "m3":  return new Date(yr, mo - 2, 1);
-    case "m6":  return new Date(yr, mo - 5, 1);
-    case "ytd": return new Date(yr, 0, 1);
-  }
-}
 
-function filterByPeriod(rows: SourceRow[], period: Period): SourceRow[] {
-  const cutoff = cutoffFor(period);
   return rows.filter((r) => {
     const d = parsePeriodDate(r.period);
-    return d !== null && d >= cutoff;
+    if (!d) return false;
+    if (period === "mtd")  return d.getFullYear() === yr && d.getMonth() === mo;
+    if (period === "last") return d.getFullYear() === new Date(yr, mo - 1, 1).getFullYear()
+                                  && d.getMonth() === new Date(yr, mo - 1, 1).getMonth();
+    if (period === "m2")   return d >= new Date(yr, mo - 1, 1);
+    if (period === "m3")   return d >= new Date(yr, mo - 2, 1);
+    if (period === "m6")   return d >= new Date(yr, mo - 5, 1);
+    if (period === "ytd")  return d.getFullYear() === yr;
+    return false;
   });
 }
 
