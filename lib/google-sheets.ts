@@ -157,7 +157,7 @@ export async function getSourceData(source: Source): Promise<SourceRow[]> {
       contractValue: parseNum(r[8]),
       grossSales:    parseNum(r[9]),
     }))
-    .filter((r) => r.leads > 0 || r.contractValue > 0 || r.grossSales > 0);
+    .filter((r) => r.leads > 0 || r.contractValue > 0 || r.grossSales > 0 || r.adSpend > 0);
 }
 
 // ─── Social Media tabs ────────────────────────────────────────────────────────
