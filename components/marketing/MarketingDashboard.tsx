@@ -134,6 +134,30 @@ function ChannelCard({ label, color, rows }: { label: string; color: string; row
       {row("CPL", cpl > 0 ? formatCurrency(Math.round(cpl)) : "—")}
       {row("CAC", cac > 0 ? formatCurrency(Math.round(cac)) : "—")}
       {row("LTGP : CAC", ratio > 0 ? formatRatio(ratio) : "—", true)}
+
+      {/* Mini gauge */}
+      <div className="mt-3 pt-3 border-t border-surface-border/50">
+        {ratio > 0 ? (
+          <>
+            <div className="relative h-[3px] flex rounded-full overflow-visible mb-2">
+              <div className="h-[3px] rounded-l-full bg-red-500"  style={{ width: "18.6%" }} />
+              <div className="h-[3px] bg-yellow-500"              style={{ width: "18.7%" }} />
+              <div className="h-[3px] rounded-r-full flex-1 bg-green-500" />
+              <div
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-surface-card transition-all duration-500"
+                style={{ left: gaugePos(ratio), background: "#EA6B2A" }}
+              />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted text-[9px] font-sans">1:1</span>
+              <span className="text-text-muted text-[9px] font-sans">3:1</span>
+              <span className="text-text-muted text-[9px] font-sans">takes off</span>
+            </div>
+          </>
+        ) : (
+          <div className="h-[3px] rounded-full bg-surface-border/40" />
+        )}
+      </div>
     </div>
   );
 }
