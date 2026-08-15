@@ -120,9 +120,9 @@ export async function getDashboardData(): Promise<OverviewStats> {
 // ─── Source detail tabs ───────────────────────────────────────────────────────
 //
 // Header row (row 5 in each sheet):
-//   A               B      C       D           E                  F           G      H      I     J                      K
-//   Period/Month  Leads  Closed  Close Rate  Projects Installed  Ad Spend($)  CPL($)  CAC($)  ROAS  Closed Contract Value  Gross Sales ($)
-//   [0]           [1]    [2]     [3]         [4]                [5]          [6]     [7]     [8]   [9]                   [10]
+//   A               B      C       D           E           F      G      H     I                      J
+//   Period/Month  Leads  Closed  Close Rate  Ad Spend($)  CPL($)  CAC($)  ROAS  Closed Contract Value  Gross Sales ($)
+//   [0]           [1]    [2]     [3]         [4]          [5]     [6]     [7]   [8]                    [9]
 //
 export async function getSourceData(source: Source): Promise<SourceRow[]> {
   const auth = getAuth();
@@ -130,7 +130,7 @@ export async function getSourceData(source: Source): Promise<SourceRow[]> {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${source}!A2:K200`,
+    range: `${source}!A2:J200`,
   });
 
   const MONTH_NAMES =
@@ -147,18 +147,17 @@ export async function getSourceData(source: Source): Promise<SourceRow[]> {
     .map((r) => ({
       period:        r[0]?.toString().trim() ?? "",
       leads:         parseNum(r[1]),
-      closed:        parseNum(r[2]),   // contracts signed count
+      closed:        parseNum(r[2]),
       closeRate:     parsePercent(r[3]),
-      installs:      parseNum(r[4]),   // projects installed count — NEW
-      adSpend:       parseNum(r[5]),
-      cpl:           parseNum(r[6]),
-      cac:           parseNum(r[7]),
-      roas:          parseNum(r[8]),
-      contractValue: parseNum(r[9]),   // closed contract value $ — NEW
-      grossSales:    parseNum(r[10]),  // install revenue $
+      installs:      0,
+      adSpend:       parseNum(r[4]),
+      cpl:           parseNum(r[5]),
+      cac:           parseNum(r[6]),
+      roas:          parseNum(r[7]),
+      contractValue: parseNum(r[8]),
+      grossSales:    parseNum(r[9]),
     }))
-    // Exclude future-placeholder rows (no leads AND no contract value AND no installs)
-    .filter((r) => r.leads > 0 || r.contractValue > 0 || r.installs > 0 || r.grossSales > 0);
+    .filter((r) => r.leads > 0 || r.contractValue > 0 || r.grossSales > 0);
 }
 
 // ─── Social Media tabs ────────────────────────────────────────────────────────
