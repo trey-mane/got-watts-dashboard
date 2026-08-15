@@ -297,11 +297,11 @@ export function MarketingDashboard({ allData }: Props) {
         </p>
         {cacLtgpRatio > 0 && (
           <>
+            {/* Log scale: 1:1 @ 18.6%, 3:1 @ 37.3% */}
             <div className="relative h-[5px] flex rounded-full overflow-visible mb-5">
-              <div className="h-[5px] rounded-l-full bg-red-500"  style={{ width: "37.3%" }} />
-              <div className="h-[5px] bg-yellow-500"              style={{ width: "10.9%" }} />
-              <div className="h-[5px] bg-green-500"               style={{ width: "16.4%" }} />
-              <div className="h-[5px] rounded-r-full flex-1"      style={{ background: "#EA6B2A" }} />
+              <div className="h-[5px] rounded-l-full bg-red-500"   style={{ width: "18.6%" }} />
+              <div className="h-[5px] bg-yellow-500"               style={{ width: "18.7%" }} />
+              <div className="h-[5px] rounded-r-full flex-1 bg-green-500" />
               <div
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0F0F0F] transition-all duration-500"
                 style={{ left: gaugePos(cacLtgpRatio), background: "#EA6B2A" }}
@@ -309,10 +309,9 @@ export function MarketingDashboard({ allData }: Props) {
             </div>
             <div className="flex gap-4 flex-wrap">
               {[
-                { color: "#ef4444", label: "<3:1 danger" },
-                { color: "#eab308", label: "3–5:1 ok" },
-                { color: "#22c55e", label: "5–10:1 good" },
-                { color: "#EA6B2A", label: "10+:1 excellent" },
+                { color: "#ef4444", label: "< 1:1 — losing money" },
+                { color: "#eab308", label: "1–3:1 — won’t scale" },
+                { color: "#22c55e", label: "3:1+ — takes off" },
               ].map((l) => (
                 <div key={l.label} className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.color }} />
