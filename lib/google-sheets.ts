@@ -256,6 +256,7 @@ export async function getAllSourcesData(): Promise<Record<string, SourceRow[]>> 
     "Referrals",
     "Meta_Ads",
     "ManyChat_(IG)",
+    "Self_Gen",
     "Other",
     "NA",
   ];

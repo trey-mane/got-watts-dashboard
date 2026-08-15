@@ -29,6 +29,7 @@ const SOURCE_CONFIG: Partial<Record<string, { label: string; color: string }>> =
   "ManyChat_(IG)": { label: "ManyChat",   color: "#E1306C" },
   Yelp:            { label: "Yelp",       color: "#D32323" },
   Referrals:       { label: "Referrals",  color: "#34d399" },
+  Self_Gen:        { label: "Self-Gen",   color: "#f59e0b" },
   Website:         { label: "Website",    color: "#8b5cf6" },
   Other:           { label: "Other",      color: "#6b7280" },
   NA:              { label: "N/A",        color: "#4b4b4b" },
@@ -205,7 +206,7 @@ export function MarketingDashboard({ allData }: Props) {
   const cac          = paidContracts > 0 && paidAdSpend > 0 ? paidAdSpend / paidContracts : 0;
   const cacLtgpRatio = cac > 0 ? LTGP / cac : 0;
 
-  // ── Source breakdown for bar chart ──
+  // ── Source breakdowns for bar charts ──
   const sourceLeads = useMemo(() =>
     Object.entries(filtered)
       .map(([key, rows]) => ({
@@ -219,6 +220,20 @@ export function MarketingDashboard({ allData }: Props) {
     [filtered]
   );
   const maxLeads = sourceLeads[0]?.leads ?? 1;
+
+  const sourceRevenue = useMemo(() =>
+    Object.entries(filtered)
+      .map(([key, rows]) => ({
+        key,
+        label: SOURCE_CONFIG[key]?.label ?? key,
+        color: SOURCE_CONFIG[key]?.color ?? "#666",
+        value: rows.reduce((s, r) => s + r.contractValue, 0),
+      }))
+      .filter((s) => s.value > 0)
+      .sort((a, b) => b.value - a.value),
+    [filtered]
+  );
+  const maxRevenue = sourceRevenue[0]?.value ?? 1;
 
   return (
     <div>
@@ -266,26 +281,47 @@ export function MarketingDashboard({ allData }: Props) {
         <Stat label="Close rate" value={closeRate > 0 ? formatPercent(closeRate) : "—"} accent />
       </div>
 
-      {/* ── Source breakdown ── */}
-      {sourceLeads.length > 0 && (
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-5 mb-8">
-          <p className="text-text-primary text-xs font-medium font-sans mb-4">Leads by source</p>
-          <div className="flex flex-col gap-3">
-            {sourceLeads.map((s) => (
-              <div key={s.key} className="grid items-center gap-3" style={{ gridTemplateColumns: "90px 1fr 32px" }}>
-                <span className="text-text-secondary text-xs font-sans truncate">{s.label}</span>
-                <div className="h-[3px] rounded-full bg-surface-border overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${(s.leads / maxLeads) * 100}%`, background: s.color }}
-                  />
+      {/* ── Source breakdowns ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {sourceLeads.length > 0 && (
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-5">
+            <p className="text-text-primary text-xs font-medium font-sans mb-4">Leads by source</p>
+            <div className="flex flex-col gap-3">
+              {sourceLeads.map((s) => (
+                <div key={s.key} className="grid items-center gap-3" style={{ gridTemplateColumns: "80px 1fr 36px" }}>
+                  <span className="text-text-secondary text-xs font-sans truncate">{s.label}</span>
+                  <div className="h-[3px] rounded-full bg-surface-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${(s.leads / maxLeads) * 100}%`, background: s.color }}
+                    />
+                  </div>
+                  <span className="text-text-muted text-[11px] font-sans text-right tabular-nums">{s.leads}</span>
                 </div>
-                <span className="text-text-muted text-[11px] font-sans text-right tabular-nums">{s.leads}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {sourceRevenue.length > 0 && (
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-5">
+            <p className="text-text-primary text-xs font-medium font-sans mb-4">Revenue by source</p>
+            <div className="flex flex-col gap-3">
+              {sourceRevenue.map((s) => (
+                <div key={s.key} className="grid items-center gap-3" style={{ gridTemplateColumns: "80px 1fr 52px" }}>
+                  <span className="text-text-secondary text-xs font-sans truncate">{s.label}</span>
+                  <div className="h-[3px] rounded-full bg-surface-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${(s.value / maxRevenue) * 100}%`, background: s.color }}
+                    />
+                  </div>
+                  <span className="text-text-muted text-[11px] font-sans text-right tabular-nums">{fmtCompact(s.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Optimization signals (paid-only) ── */}
       <div className="flex items-baseline gap-2 mb-3">

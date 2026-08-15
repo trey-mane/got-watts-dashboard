@@ -5,6 +5,7 @@ export type Source =
   | "Referrals"
   | "Meta_Ads"
   | "ManyChat_(IG)"
+  | "Self_Gen"
   | "Other"
   | "NA";
 
@@ -15,6 +16,7 @@ export const ALL_SOURCES: Source[] = [
   "Referrals",
   "Meta_Ads",
   "ManyChat_(IG)",
+  "Self_Gen",
   "Other",
   "NA",
 ];
@@ -26,6 +28,7 @@ export const SOURCE_LABELS: Record<Source, string> = {
   Referrals: "Referrals",
   Meta_Ads: "Meta Ads",
   "ManyChat_(IG)": "ManyChat (IG)",
+  Self_Gen: "Self-Gen",
   Other: "Other",
   NA: "N/A",
 };
