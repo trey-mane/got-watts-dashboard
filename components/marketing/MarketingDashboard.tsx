@@ -140,74 +140,131 @@ function Stat({ label, value, sub, accent }: {
   );
 }
 
-function GoalCard({ storageKey, label, current, defaultTarget, months }: {
-  storageKey: string; label: string; current: number; defaultTarget: number; months: number;
-}) {
-  const [target, setTarget] = useState(defaultTarget);
-  const [editing, setEditing] = useState(false);
-  const [input, setInput] = useState("");
+// ─── Goal helpers ─────────────────────────────────────────────────────────────
 
+function useGoal(key: string, def: number): [number, (v: number) => void] {
+  const [val, setVal] = useState(def);
   useEffect(() => {
-    const v = localStorage.getItem(storageKey);
-    if (v) setTarget(parseFloat(v) || defaultTarget);
-  }, [storageKey, defaultTarget]);
+    try { const s = localStorage.getItem(key); if (s) setVal(parseFloat(s) || def); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  function update(v: number) { setVal(v); try { localStorage.setItem(key, v.toString()); } catch {} }
+  return [val, update];
+}
 
-  const periodTarget = target * months;
-  const pct = periodTarget > 0 ? Math.min(100, (current / periodTarget) * 100) : 0;
-  const barColor = pct >= 100 ? "bg-green-500" : pct >= 70 ? "bg-brand" : pct >= 40 ? "bg-yellow-500" : "bg-red-400";
+function progColor(pct: number) {
+  return pct >= 100 ? "bg-green-500" : pct >= 70 ? "bg-brand" : pct >= 40 ? "bg-yellow-500" : "bg-red-400";
+}
 
-  function save(raw: string) {
-    const v = parseFloat(raw.replace(/[$,]/g, ""));
-    if (!isNaN(v) && v > 0) {
-      setTarget(v);
-      localStorage.setItem(storageKey, v.toString());
-    }
+function GoalTrack({
+  trackLabel, color, months,
+  revenueGoal, onChangeRevenue,
+  leadsPerMonth, contractsPerMonth,
+  currLeads, currContracts, currValue,
+  closeRatePct, avgDeal,
+}: {
+  trackLabel: string; color: string; months: number;
+  revenueGoal: number; onChangeRevenue: (v: number) => void;
+  leadsPerMonth: number; contractsPerMonth: number;
+  currLeads: number; currContracts: number; currValue: number;
+  closeRatePct: number; avgDeal: number;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+
+  function saveGoal(raw: string) {
+    const cleaned = raw.replace(/[$,\s]/g, "");
+    const v = cleaned.endsWith("M") || cleaned.endsWith("m")
+      ? parseFloat(cleaned) * 1_000_000
+      : cleaned.endsWith("K") || cleaned.endsWith("k")
+      ? parseFloat(cleaned) * 1_000
+      : parseFloat(cleaned);
+    if (!isNaN(v) && v > 0) onChangeRevenue(v);
     setEditing(false);
   }
 
+  const pLeads     = leadsPerMonth     * months;
+  const pContracts = contractsPerMonth * months;
+  const pRevenue   = revenueGoal       * months;
+
+  const rows = [
+    { label: "Leads",     curr: currLeads,     target: pLeads     },
+    { label: "Contracts", curr: currContracts, target: pContracts },
+    { label: "Revenue",   curr: currValue,     target: pRevenue, isMoney: true },
+  ];
+
   return (
-    <div className="bg-surface-card border border-surface-border rounded-2xl p-4">
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans">{label}</p>
+    <div className="bg-surface-card border border-surface-border rounded-2xl p-5 flex flex-col">
+      {/* Track header */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+        <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans">{trackLabel}</p>
+      </div>
+
+      {/* Editable revenue goal */}
+      {editing ? (
+        <form onSubmit={(e) => { e.preventDefault(); saveGoal(inputVal); }} className="flex gap-2 mb-2">
+          <input
+            autoFocus
+            className="flex-1 min-w-0 bg-surface-muted border border-brand rounded-lg px-3 py-1.5 text-xl font-bold text-text-primary font-sans outline-none tabular-nums"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={() => saveGoal(inputVal)}
+            placeholder="e.g. 1000000 or 1M"
+          />
+          <button type="submit" className="px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-sans flex-shrink-0">Save</button>
+        </form>
+      ) : (
         <button
-          onClick={() => { setInput(target.toString()); setEditing(true); }}
-          className="text-text-muted hover:text-brand transition-colors"
-          title="Edit monthly target"
+          onClick={() => { setInputVal(revenueGoal.toString()); setEditing(true); }}
+          className="group flex items-baseline gap-1.5 mb-2 text-left"
         >
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+          <span className="text-3xl font-bold text-text-primary tabular-nums font-sans">{fmtCompact(revenueGoal)}</span>
+          <span className="text-text-muted text-sm font-sans">/mo</span>
+          <svg className="opacity-0 group-hover:opacity-40 transition-opacity ml-1 flex-shrink-0" width="10" height="10" viewBox="0 0 12 12" fill="none">
             <path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
           </svg>
         </button>
-      </div>
+      )}
 
-      {editing ? (
-        <form onSubmit={(e) => { e.preventDefault(); save(input); }} className="flex gap-2 mb-2">
-          <input
-            autoFocus
-            className="flex-1 min-w-0 bg-surface-muted border border-brand rounded-lg px-2 py-1.5 text-sm text-text-primary font-sans outline-none"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onBlur={() => save(input)}
-            placeholder="Monthly target"
-          />
-          <button type="submit" className="px-2.5 py-1.5 bg-brand text-white rounded-lg text-xs font-sans">
-            Save
-          </button>
-        </form>
-      ) : (
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-xl font-bold text-text-primary tabular-nums font-sans">{formatNumber(Math.round(current))}</span>
-          <span className="text-text-muted text-xs font-sans">
-            / {formatNumber(Math.round(periodTarget))}
-            {months > 1 && <span className="text-text-muted text-[10px]"> ({months}×{formatNumber(Math.round(target))}/mo)</span>}
+      {/* Reverse-engineered pipeline */}
+      {leadsPerMonth > 0 && (
+        <div className="flex items-center gap-1 text-[11px] font-sans text-text-muted mb-4 flex-wrap leading-relaxed">
+          <span className="font-semibold text-text-secondary tabular-nums">{Math.ceil(leadsPerMonth).toLocaleString()} leads</span>
+          <span>→</span>
+          <span className="font-semibold text-text-secondary tabular-nums">{Math.ceil(contractsPerMonth).toLocaleString()} contracts</span>
+          <span>→</span>
+          <span className="font-semibold text-brand tabular-nums">{fmtCompact(revenueGoal)}</span>
+          <span className="text-text-muted text-[10px] ml-0.5">
+            ({formatPercent(closeRatePct)} close · {fmtCompact(avgDeal)} avg deal)
           </span>
         </div>
       )}
 
-      <div className="h-1.5 rounded-full bg-surface-muted overflow-hidden mb-1.5">
-        <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${pct}%` }} />
+      {/* Progress rows */}
+      <div className="border-t border-surface-border pt-4 flex flex-col gap-3 mt-auto">
+        {months > 1 && (
+          <p className="text-[10px] text-text-muted font-sans -mt-1 mb-1">Progress · target × {months} months</p>
+        )}
+        {rows.map(({ label, curr, target, isMoney }) => {
+          const pct = target > 0 ? Math.min(100, (curr / target) * 100) : 0;
+          return (
+            <div key={label}>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-[10px] uppercase tracking-widest text-text-muted font-sans">{label}</span>
+                <span className="text-[11px] font-sans text-text-secondary tabular-nums">
+                  {isMoney ? fmtCompact(curr) : formatNumber(Math.round(curr))}
+                  <span className="text-text-muted"> / {isMoney ? fmtCompact(target) : formatNumber(Math.round(target))}</span>
+                  <span className={`ml-1.5 text-[10px] font-medium ${pct >= 70 ? "text-green-600" : "text-text-muted"}`}>{pct.toFixed(0)}%</span>
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-surface-muted overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${progColor(pct)}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <p className="text-text-muted text-[10px] font-sans">{pct.toFixed(0)}% of target</p>
     </div>
   );
 }
@@ -277,9 +334,14 @@ interface Props {
 type SortDir = "asc" | "desc";
 
 export function MarketingDashboard({ allData }: Props) {
-  const [period, setPeriod]     = useState<Period>("mtd");
-  const [sortKey, setSortKey]   = useState<SortKey>("value");
-  const [sortDir, setSortDir]   = useState<SortDir>("desc");
+  const [period, setPeriod]   = useState<Period>("mtd");
+  const [sortKey, setSortKey] = useState<SortKey>("value");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Goal targets — stored in localStorage, editable inline
+  const [goalPaidRev,   setGoalPaidRev]   = useGoal("gw_goal_paid_rev",   1_000_000);
+  const [goalOrgRev,    setGoalOrgRev]    = useGoal("gw_goal_org_rev",    1_200_000);
+  const [goalAnnual,    setGoalAnnual]    = useGoal("gw_goal_annual",    25_000_000);
 
   // ── Period-filtered data ──
   const filtered = useMemo<Record<string, SourceRow[]>>(() => {
@@ -299,8 +361,40 @@ export function MarketingDashboard({ allData }: Props) {
   // ── Aggregates ──
   const allRows  = useMemo(() => Object.values(filtered).flat(), [filtered]);
   const priorRows = useMemo(() => Object.values(priorFiltered).flat(), [priorFiltered]);
-  const paidRows = useMemo(() => CHANNEL_KEYS.flatMap((ch) => filtered[ch.key] ?? []), [filtered]);
+  const paidRows      = useMemo(() => CHANNEL_KEYS.flatMap((ch) => filtered[ch.key]      ?? []), [filtered]);
   const priorPaidRows = useMemo(() => CHANNEL_KEYS.flatMap((ch) => priorFiltered[ch.key] ?? []), [priorFiltered]);
+  const organicRows   = useMemo(
+    () => Object.entries(filtered).filter(([k]) => !PAID_SOURCES.has(k as Source)).flatMap(([, r]) => r),
+    [filtered]
+  );
+
+  // YTD 2026 baseline — used to derive close rates & avg deal sizes for goal math
+  const baseline = useMemo(() => {
+    const yr = new Date().getFullYear();
+    const paid: SourceRow[] = [], org: SourceRow[] = [];
+    for (const [k, rows] of Object.entries(allData)) {
+      const ytd = rows.filter(r => { const d = parsePeriodDate(r.period); return d && d.getFullYear() === yr; });
+      (PAID_SOURCES.has(k as Source) ? paid : org).push(...ytd);
+    }
+    const pContracts = paid.reduce((s, r) => s + r.closed, 0);
+    const pLeads     = paid.reduce((s, r) => s + r.leads, 0);
+    const pValue     = paid.reduce((s, r) => s + r.contractValue, 0);
+    const oContracts = org.reduce((s, r) => s + r.closed, 0);
+    const oLeads     = org.reduce((s, r) => s + r.leads, 0);
+    const oValue     = org.reduce((s, r) => s + r.contractValue, 0);
+    const allContracts = pContracts + oContracts;
+    const allValue     = pValue + oValue;
+    const moElapsed    = new Date().getMonth() + 1; // Jan=1
+    return {
+      paidCloseRate:  pLeads     > 0 ? pContracts / pLeads     : 0,
+      orgCloseRate:   oLeads     > 0 ? oContracts / oLeads     : 0,
+      paidAvgDeal:    pContracts > 0 ? pValue     / pContracts : 0,
+      orgAvgDeal:     oContracts > 0 ? oValue     / oContracts : 0,
+      blendedAvgDeal: allContracts > 0 ? allValue / allContracts : 0,
+      ytdValue: allValue,
+      moElapsed,
+    };
+  }, [allData]);
 
   // Current period
   const totalLeads         = allRows.reduce((s, r) => s + r.leads, 0);
@@ -313,6 +407,24 @@ export function MarketingDashboard({ allData }: Props) {
   const cpl                = paidLeads > 0 && paidAdSpend > 0 ? paidAdSpend / paidLeads : 0;
   const cac                = paidContracts > 0 && paidAdSpend > 0 ? paidAdSpend / paidContracts : 0;
   const cacLtgpRatio       = cac > 0 ? LTGP / cac : 0;
+
+  // Current period paid/organic value split (for goal progress)
+  const paidValue = paidRows.reduce((s, r) => s + r.contractValue, 0);
+  const orgLeads  = organicRows.reduce((s, r) => s + r.leads, 0);
+  const orgContracts = organicRows.reduce((s, r) => s + r.closed, 0);
+  const orgValue     = organicRows.reduce((s, r) => s + r.contractValue, 0);
+
+  // Reverse-engineer monthly lead/contract targets from revenue goals + YTD rates
+  const paidAvgDeal = baseline.paidAvgDeal > 0 ? baseline.paidAvgDeal : baseline.blendedAvgDeal;
+  const orgAvgDeal  = baseline.orgAvgDeal  > 0 ? baseline.orgAvgDeal  : baseline.blendedAvgDeal;
+  const paidContractsPerMo = paidAvgDeal > 0 ? goalPaidRev / paidAvgDeal : 0;
+  const paidLeadsPerMo     = baseline.paidCloseRate > 0 ? paidContractsPerMo / baseline.paidCloseRate : 0;
+  const orgContractsPerMo  = orgAvgDeal  > 0 ? goalOrgRev  / orgAvgDeal  : 0;
+  const orgLeadsPerMo      = baseline.orgCloseRate  > 0 ? orgContractsPerMo  / baseline.orgCloseRate  : 0;
+
+  // Annual run rate from YTD contract value
+  const monthlyRunRate = baseline.moElapsed > 0 ? baseline.ytdValue / baseline.moElapsed : 0;
+  const annualPace     = monthlyRunRate * 12;
 
   // Prior period (for deltas)
   const priorLeads         = priorRows.reduce((s, r) => s + r.leads, 0);
@@ -551,14 +663,94 @@ export function MarketingDashboard({ allData }: Props) {
       )}
 
       {/* ── Goals ── */}
-      <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans mb-3">
-        Goals
-        {months > 1 && <span className="normal-case ml-1">· scaled to {months} months</span>}
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <GoalCard storageKey="gw_target_leads"     label="Leads"      current={totalLeads}         defaultTarget={30}     months={months} />
-        <GoalCard storageKey="gw_target_contracts" label="Contracts"  current={totalContracts}     defaultTarget={10}     months={months} />
-        <GoalCard storageKey="gw_target_revenue"   label="Contract value" current={totalContractValue} defaultTarget={100000} months={months} />
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans">Goals</p>
+        {(baseline.paidCloseRate > 0 || baseline.orgCloseRate > 0) && (
+          <p className="text-text-muted text-[10px] font-sans">
+            YTD data · paid close {formatPercent(baseline.paidCloseRate * 100)} · organic close {formatPercent(baseline.orgCloseRate * 100)} · blended avg deal {fmtCompact(baseline.blendedAvgDeal)}
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <GoalTrack
+          trackLabel="Paid ads"
+          color="#EA6B2A"
+          months={months}
+          revenueGoal={goalPaidRev}
+          onChangeRevenue={setGoalPaidRev}
+          leadsPerMonth={paidLeadsPerMo}
+          contractsPerMonth={paidContractsPerMo}
+          currLeads={paidLeads}
+          currContracts={paidContracts}
+          currValue={paidValue}
+          closeRatePct={baseline.paidCloseRate * 100}
+          avgDeal={paidAvgDeal}
+        />
+        <GoalTrack
+          trackLabel="Organic & other"
+          color="#34d399"
+          months={months}
+          revenueGoal={goalOrgRev}
+          onChangeRevenue={setGoalOrgRev}
+          leadsPerMonth={orgLeadsPerMo}
+          contractsPerMonth={orgContractsPerMo}
+          currLeads={orgLeads}
+          currContracts={orgContracts}
+          currValue={orgValue}
+          closeRatePct={baseline.orgCloseRate * 100}
+          avgDeal={orgAvgDeal}
+        />
+      </div>
+
+      {/* Annual pace */}
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-5 mb-8">
+        <div className="flex items-start justify-between mb-1">
+          <p className="text-text-muted text-[10px] uppercase tracking-widest font-sans">Annual revenue</p>
+          <button
+            onClick={() => {
+              const raw = window.prompt("Annual revenue goal (e.g. 25000000 or 25M):", goalAnnual.toString());
+              if (raw) {
+                const cleaned = raw.replace(/[$,\s]/g, "");
+                const v = cleaned.endsWith("M") || cleaned.endsWith("m") ? parseFloat(cleaned) * 1_000_000 : parseFloat(cleaned);
+                if (!isNaN(v) && v > 0) setGoalAnnual(v);
+              }
+            }}
+            className="text-text-muted hover:text-brand transition-colors"
+            title="Edit annual target"
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+              <path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex items-baseline gap-4 mb-4 flex-wrap">
+          <div>
+            <p className="text-3xl font-bold text-brand tabular-nums font-sans">{fmtCompact(annualPace)}<span className="text-text-muted text-base font-normal">/yr pace</span></p>
+            <p className="text-text-muted text-[11px] font-sans mt-1">
+              {fmtCompact(monthlyRunRate)}/mo run rate · {baseline.moElapsed} months of YTD data
+            </p>
+          </div>
+          <div className="border-l border-surface-border pl-4">
+            <p className="text-sm font-medium font-sans tabular-nums" style={{
+              color: annualPace >= goalAnnual ? "#22c55e" : annualPace >= goalAnnual * 0.7 ? "#EA6B2A" : "#ef4444"
+            }}>
+              {annualPace >= goalAnnual
+                ? `↑ ${fmtCompact(annualPace - goalAnnual)} ahead`
+                : `↓ ${fmtCompact(goalAnnual - annualPace)} behind`}
+            </p>
+            <p className="text-text-muted text-[11px] font-sans">vs {fmtCompact(goalAnnual)} target</p>
+          </div>
+        </div>
+        <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${progColor(annualPace / goalAnnual * 100)}`}
+            style={{ width: `${Math.min(100, (annualPace / goalAnnual) * 100)}%` }}
+          />
+        </div>
+        <p className="text-text-muted text-[10px] font-sans mt-2">
+          {((annualPace / goalAnnual) * 100).toFixed(0)}% of {fmtCompact(goalAnnual)} annual goal · needs {fmtCompact(goalAnnual / 12)}/mo to hit
+        </p>
       </div>
 
       {/* ── Source breakdowns ── */}
